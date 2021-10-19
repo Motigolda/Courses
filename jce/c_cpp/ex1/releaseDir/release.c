@@ -1,21 +1,28 @@
-// I.D 318530136
+
+/*
+I.D 318530136
+I Believe that comments are needed where the code can't talk itself.
+My efforts were invested in making readable code and write the minimum number of comments.
+*/
 #include <stdio.h>
-#define MAX_INT_NUM_OF_DIGITS 10
-#ifndef TRUE    
+
+#define MAX_DIGITS_IN_INT 10
 #define TRUE    1
 #define FALSE   0
-#endif
-#ifndef _MAIN_H
-#define _MAIN_H
-// must-have functions
+
+#pragma region must-have functions declaration
 int nextPrime(int num);
 int isPalindrom(int num);
 int containsNonPrimesDigitsOnly(int num);
 int isSpecial(int num);
 void printAllSpecial(int from, int to);
-// opitional functions
+#pragma endregion
+
+#pragma region optional functions declaration
 int isPrime(int num);
-#endif
+#pragma endregion
+
+#pragma region exercise
 int nextPrime(int num){
     int i = num + 1;
     while(TRUE){
@@ -27,13 +34,18 @@ int nextPrime(int num){
 
 int isPalindrom(int num){
     if (num < 0) num *= -1;
-    int digits[MAX_INT_NUM_OF_DIGITS];
-    int numOfDigits = 0, i = 0;
+
+    int digits[MAX_DIGITS_IN_INT];
+    int digitsIndexer = 0, i = 0;
+
     while(num > 0){
-        digits[numOfDigits] = num % 10; 
-        numOfDigits++;
+        digits[digitsIndexer] = num % 10; 
+        digitsIndexer++;
         num /= 10;
     }
+
+    int numOfDigits = digitsIndexer;
+
     for (i = 0; i < numOfDigits / 2; i++)
         if (digits[i] != digits[numOfDigits - 1 - i])
             return FALSE;
@@ -43,16 +55,23 @@ int isPalindrom(int num){
 
 int containsNonPrimesDigitsOnly(int num){
     if (num < 0) num *= -1;
+    int currentDigit;
+
     while(num > 0){
-        if(isPrime(num % 10) == TRUE)
+        currentDigit = num % 10;
+        if(isPrime(currentDigit) == TRUE)
             return FALSE;
+            
         num /= 10;
     }
+
     return TRUE;
 }
+
 int isSpecial(int num){
     return isPalindrom(num) && containsNonPrimesDigitsOnly(num) && isPrime(num);
 }
+
 void printAllSpecial(int from, int to){
     if (to < from) return;
     int i;
@@ -61,6 +80,7 @@ void printAllSpecial(int from, int to){
             printf("%d\n", i);
         
 }
+
 int isPrime(int num){
     if (num < 2) return FALSE;
     int i;
@@ -69,3 +89,4 @@ int isPrime(int num){
             return FALSE;
     return TRUE;
 }
+#pragma endregion
