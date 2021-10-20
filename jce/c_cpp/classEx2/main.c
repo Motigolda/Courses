@@ -12,9 +12,10 @@ int main(){
     char userInput[MAX_INPUT_SIZE] = {1,2,3};
     int asciiSum = 0;
     while(strcmp(EXIT_WORD, userInput) != 0){
-        printf("Enter string [maximum length:%d]: ", MAX_INPUT_SIZE);
+        printf("Enter string [maximum length:%d, enter %s to exit]: ", MAX_INPUT_SIZE, EXIT_WORD);
         scanf("%s", userInput);
         asciiSum = getCharsValueSum(userInput, MAX_INPUT_SIZE);
+        if (strcmp(EXIT_WORD, userInput) == 0) return 0;
         printf("%d\n", asciiSum);
     }
     return 0;
