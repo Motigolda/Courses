@@ -156,9 +156,11 @@ char _CharToLowercase(const char to_lower);
 Developer** HRGetCandidates();
 Developer** HRGetEmployees();
 error_code_t HRInsertNewCandidate(Developer candidate);
-error_code_t HRHireCandidate(Developer candidate);
+error_code_t HRHireCandidate(char* first_name, char* last_name);
 bool_t HRAreThereCandidates();
 bool_t HRAreThereEmployees();
+bool_t HRISCandidatesDBFull();
+bool_t HRISEmployeesDBFull();
 
 // - DATA Layer: starts with DB, stands for DataBase
 // - no logic, only duplicates and data existance checks
@@ -435,7 +437,7 @@ void _ControllerCommandPrintEmployees(){
 }
 
 void _ControllerCommandInsertNewCandidate(){
-
+    
 }
 
 void _ControllerCommandHireCandidate(){
@@ -478,11 +480,17 @@ Developer** HRGetEmployees(){
 }
 
 error_code_t HRInsertNewCandidate(Developer candidate){
+    if (DBCandidatesTableFull())
+        return ERROR_MAX_CANDIDATES;
 
+    // TODO: insert new candidate flow
 }
 
-error_code_t HRHireCandidate(Developer candidate){
+error_code_t HRHireCandidate(char* first_name, char* last_name){
+    if (DBEmployeesTableFull())
+        return ERROR_MAX_EMPLOYEES;
 
+    // TODO: hire candidate flow
 }
 
 bool_t HRAreThereCandidates(){
@@ -492,6 +500,14 @@ bool_t HRAreThereCandidates(){
 bool_t HRAreThereEmployees(){
     return !DBEmployeesTableEmpty();
 }
+bool_t HRISCandidatesDBFull(){
+    return DBCandidatesTableFull();
+}
+
+bool_t HRISEmployeesDBFull(){
+    return DBEmployeesTableFull();
+}
+
 #pragma endregion // HR API
 
 #pragma region DB
