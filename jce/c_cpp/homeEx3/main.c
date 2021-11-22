@@ -73,8 +73,9 @@ typedef enum error_code_t{
     ERROR_MAX_EMPLOYEES,
     ERROR_MAX_CANDIDATES,
     ERROR_UNKNOWN_COMMAND,
-    ERROR_CADNIDATE_EXIST,
-    ERROR_EMPLOYEE_EXIST
+    ERROR_CANDIDATE_EXIST,
+    ERROR_EMPLOYEE_EXIST,
+    ERROR_NULL_POINTER
 } error_code_t;
 
 #define MSG_CANDIDATE_NOT_EXIST         "The candidate does\'nt exists.\n"
@@ -90,7 +91,11 @@ typedef enum error_code_t{
 #define MSG_CANDIDATE_EXIST             "The candidate does exists.\n"
 #define MSG_CANDIDATE_EXIST_FORMAT      "The candidate %s %s does exists.\n"
 #define MSG_EMPLOYEE_EXIST              "The employee does exists.\n"
-#define MSG_EMPLOYEE_EXIST_FORMAT       "The employee %s %s does exists.\n"        
+#define MSG_EMPLOYEE_EXIST_FORMAT       "The employee %s %s does exists.\n"
+#define MSG_CANDIDATE_ADD_SUCCESS       "Candidate added successfully.\n"
+#define MSG_CANDIDATE_ADD_SUCCESS_FORMAT "The candidate %s %s added successfully.\n"    
+#define MSG_UNKNOWN_ERROR               "Unknown Error\n"    
+#define MSG_NULL_POINTER                "Null pointer error.\n"
 #define MSG_EXIT                        "-----------------------------------------------\n\
 Thanks for using HR Software By Moti Goldstein.\n\
 -----------------------------------------------\n"
@@ -148,6 +153,8 @@ void _ControllerCommandExit();
 command_code_t _ControllerRawCommandToCommandCode(char* raw_command);
 char _CharToDigit(const char to_digit);
 char _CharToLowercase(const char to_lower);
+void _StrToLower(char* str);
+void _StrFormatWithFirstAndLastNames(char* destination, char* format, Developer* dev);
 // Model Component: API for HR software
 
 // - Business logic implemented here 
@@ -167,25 +174,36 @@ bool_t HRISEmployeesDBFull();
 error_code_t DBAddCandidate(Developer candidate);
 error_code_t DBDeleteCandidate(Developer candidate);
 error_code_t DBAddEmployee(Developer employee);
-error_code_t DBDeleteEmployee(Developer employee);
 int DBGetCandidateKey(char* first_name, char* last_name); 
 int DBGetEmployeeKey(char* first_name, char* last_name);
 bool_t DBEmployeesTableFull();
 bool_t DBCandidatesTableFull();
 bool_t DBEmployeesTableEmpty();
 bool_t DBCandidatesTableEmpty();
+bool_t DBEmployeeExists(char* first_name, char* last_name);
+bool_t DBCandidateExists(char* first_name, char* last_name);
 // privates
 int _DBHash(Developer* _developer);
-
+void _DBRemoveCompanyRecommenders(Developer* candidate);
+void _DBLowerAllData(Developer* dev);
 // Memory clean
 void MemoryCleanExit();
 void _MemoryCleanCandidateRecommenders(Developer* candidate);
+void _MemoryCleanCandidateCompanyRecommenders(Developer* candidate);
 
 //
 // ------- main program -------
 //
 int main(){
-    ControllerMainLoop();
+    // ControllerMainLoop();
+    UIShowCandidates(HRGetCandidates());
+    Developer candidate = { 0 };
+    strcpy(candidate.first_name, "Moti");
+    strcpy(candidate.last_name, "Goldstein");
+    strcpy(candidate.degree, "No Degree");
+
+    DBAddCandidate(candidate);
+    UIShowCandidates(HRGetCandidates());
     MemoryCleanExit();
     return 0;
 }
@@ -437,11 +455,81 @@ void _ControllerCommandPrintEmployees(){
 }
 
 void _ControllerCommandInsertNewCandidate(){
-    
+    if(HRISCandidatesDBFull()){
+        UIShowWarning(ERROR_MAX_CANDIDATES, MSG_MAX_CANDIDATES);
+    }
+    else{
+        Developer candidate = { 0 };
+        Developer company_recommenders[MAX_EXTERNAL_RECOMMENDERS];
+        Recommender external_recommenders[MAX_EXTERNAL_RECOMMENDERS];
+        UIGetNewCandidate(&candidate, company_recommenders, external_recommenders);
+
+        int i = 0;
+        for(i = 0; i < MAX_COMPANY_RECOMMENDERS; i++){
+            Developer* company_recommender = (Developer*)malloc(sizeof(Developer));
+            strcpy(company_recommender->first_name, company_recommenders[i].first_name);
+            strcpy(company_recommender->last_name, company_recommenders[i].last_name);
+            candidate.company_recommenders[i] = company_recommender;
+        }
+        for (i = 0; i < MAX_EXTERNAL_RECOMMENDERS; i++){
+            Recommender* external_recommender = (Recommender*)malloc(sizeof(Recommender));
+            strcpy(external_recommender->first_name, external_recommenders[i].first_name);
+            strcpy(external_recommender->last_name, external_recommenders[i].last_name);
+            strcpy(external_recommender->email, external_recommenders[i].email);
+            candidate.external_recommenders[i] = external_recommender;
+        }
+        
+        error_code_t err = HRInsertNewCandidate(candidate);
+        
+        _MemoryCleanCandidateCompanyRecommenders(&candidate);
+        _MemoryCleanCandidateRecommenders(&candidate);
+
+        switch (err)
+        {
+            case SUCCESS:
+            {
+                char* success_message = (char*)malloc(strlen(MSG_CANDIDATE_ADD_SUCCESS_FORMAT) + strlen(candidate.first_name) + strlen(candidate.last_name));
+                sprintf(success_message, MSG_CANDIDATE_ADD_SUCCESS_FORMAT, candidate.first_name, candidate.last_name);
+                UIShowMessage(success_message);
+                free(success_message);
+                break;
+            }
+            case ERROR_MAX_CANDIDATES:
+                UIShowError(ERROR_MAX_CANDIDATES, MSG_MAX_CANDIDATES);
+                break;
+            case ERROR_CANDIDATE_EXIST:
+            {
+                char* candidate_exist_message = (char*)malloc(strlen(MSG_CANDIDATE_EXIST_FORMAT) + strlen(candidate.first_name) + strlen(candidate.last_name));
+                sprintf(candidate_exist_message, MSG_CANDIDATE_EXIST_FORMAT, candidate.first_name, candidate.last_name);
+                UIShowError(ERROR_CANDIDATE_EXIST, candidate_exist_message);
+                free(candidate_exist_message);
+                break;                
+            }
+
+            default:
+                UIShowError(err, MSG_UNKNOWN_ERROR);
+                break;
+        }  
+    }
 }
 
 void _ControllerCommandHireCandidate(){
-
+    if(HRISEmployeesDBFull())
+        UIShowWarning(ERROR_MAX_EMPLOYEES, MSG_MAX_EMPLOYEES);
+    else {
+        Developer candidate_to_hire = { 0 };
+        UIGetCandidateToHire(&candidate_to_hire);
+        error_code_t err = HRHireCandidate(candidate_to_hire.first_name, candidate_to_hire.last_name);
+        switch (err)
+        {
+        case SUCCESS:
+            
+            break;
+        
+        default:
+            break;
+        }
+    }
 }
 
 void _ControllerCommandExit(){
@@ -463,6 +551,9 @@ char _CharToDigit(const char to_digit){
     return to_digit - ASCII_OFFSET_CHAR_TO_DIGIT;
 }
 
+void _StrToLower(char* str){
+
+}
 #pragma endregion // Controller
 
 #pragma region Controller_Commands
@@ -483,14 +574,15 @@ error_code_t HRInsertNewCandidate(Developer candidate){
     if (DBCandidatesTableFull())
         return ERROR_MAX_CANDIDATES;
 
-    // TODO: insert new candidate flow
+    if (DBCandidateExists(candidate.first_name, candidate.last_name))
+        return ERROR_CANDIDATE_EXIST;
 }
 
 error_code_t HRHireCandidate(char* first_name, char* last_name){
     if (DBEmployeesTableFull())
         return ERROR_MAX_EMPLOYEES;
 
-    // TODO: hire candidate flow
+    
 }
 
 bool_t HRAreThereCandidates(){
@@ -512,29 +604,137 @@ bool_t HRISEmployeesDBFull(){
 
 #pragma region DB
 error_code_t DBAddCandidate(Developer candidate){
+    if (DBCandidateExists(candidate.first_name, candidate.last_name))
+        return ERROR_CANDIDATE_EXIST;
 
+    int candidate_hash = _DBHash(&candidate);
+    _DBLowerAllData(&candidate);
+    int tries_count = 0;
+    while(tries_count < MAX_ENTRYS_IN_TABLE){
+        if (candidates[candidate_hash] == NULL){
+            candidates[candidate_hash] = (Developer*)malloc(sizeof(Developer));
+            strcpy(candidates[candidate_hash]->first_name, candidate.first_name);
+            strcpy(candidates[candidate_hash]->last_name, candidate.last_name);
+            strcpy(candidates[candidate_hash]->degree, candidate.degree);
+            int i = 0;
+            for (i = 0; i < MAX_EXTERNAL_RECOMMENDERS; i++){
+                if (candidate.external_recommenders[i] != NULL)
+                    candidates[candidate_hash]->external_recommenders[i] = candidate.external_recommenders[i];
+                else
+                    candidates[candidate_hash]->external_recommenders[i] = NULL;
+            }
+            for (i = 0; i < MAX_COMPANY_RECOMMENDERS; i++){
+                if (candidate.company_recommenders[i] != NULL)
+                    candidates[candidate_hash]->company_recommenders[i] = candidate.company_recommenders[i];
+                else
+                    candidates[candidate_hash]->company_recommenders[i] = NULL;
+            }
+            break;
+        }
+        else{
+            tries_count++;
+            candidate_hash++;
+            candidate_hash %= MAX_ENTRYS_IN_TABLE;
+        }
+    }
+    if (tries_count == MAX_ENTRYS_IN_TABLE)
+        return ERROR_MAX_CANDIDATES;
+    return SUCCESS;
 }
 
 error_code_t DBDeleteCandidate(Developer candidate){
-
+    if (!DBCandidateExists(candidate.first_name, candidate.last_name))
+        return ERROR_CANDIDATE_NOT_EXIST;
+    
+    int candidate_key = DBGetCandidateKey(candidate.first_name, candidate.last_name);
+    _MemoryCleanCandidateRecommenders(candidates[candidate_key]);
+    free(candidates[candidate_key]);
+    candidates[candidate_key] == NULL;
+    return SUCCESS;
 }
 
-error_code_t DBAddEmployee(Developer employee){
+error_code_t DBAddEmployee(Developer candidate){
+    if (DBEmployeesTableFull())
+        return ERROR_MAX_EMPLOYEES;
+    
+    if (DBEmployeeExists(candidate.first_name, candidate.last_name))
+        return ERROR_EMPLOYEE_EXIST;
 
-}
-
-error_code_t DBDeleteEmployee(Developer employee){
-
+    if (!DBCandidateExists(candidate.first_name, candidate.last_name))
+        return ERROR_CANDIDATE_NOT_EXIST;
+        
+    _DBLowerAllData(&candidate);
+    int candidate_key = DBGetCandidateKey(candidate.first_name, candidate.last_name);
+    int employee_hash = _DBHash(&candidate);
+    int i = 0;
+    while(i < MAX_ENTRYS_IN_TABLE){
+        if (employees[employee_hash] == NULL){
+            employees[employee_hash] = candidates[candidate_key];
+            _MemoryCleanCandidateRecommenders(candidates[candidate_key]);
+            _DBRemoveCompanyRecommenders(employees[employee_hash]);
+            return SUCCESS;
+        } 
+        else {
+            i++;
+            employee_hash++;
+            employee_hash %= MAX_ENTRYS_IN_TABLE;
+        }
+    }
+    return ERROR_MAX_EMPLOYEES;   
 }
 
 int DBGetCandidateKey(char* first_name, char* last_name){
-
+    if (first_name == NULL || last_name == NULL) 
+        return ERROR_NULL_POINTER;
+    
+    _StrToLower(first_name);
+    _StrToLower(last_name);
+    Developer dev = { 0 };
+    strcpy(dev.first_name, first_name);
+    strcpy(dev.last_name, last_name);
+    int i = 0;
+    int candidate_hash  = _DBHash(&dev);
+    while(i < MAX_ENTRYS_IN_TABLE){
+        if (candidates[candidate_hash] != NULL){
+            bool_t first_name_equals = strcmp(first_name, candidates[candidate_hash]->first_name) == STRINGS_EQUALS;
+            bool_t last_name_equals  = strcmp(last_name, candidates[candidate_hash]->last_name) == STRINGS_EQUALS;
+            if (first_name_equals && last_name_equals)
+                return candidate_hash;
+        } 
+        i++;
+        candidate_hash++;
+        candidate_hash %= MAX_ENTRYS_IN_TABLE;
+    }
+    return ERROR_CANDIDATE_NOT_EXIST;
 } 
-
-int DBEmployeeExists(char* first_name, char* last_name){
-
+int DBGetEmployeeKey(char* first_name, char* last_name){
+    if (first_name == NULL || last_name == NULL) 
+        return ERROR_NULL_POINTER;
+    
+    _StrToLower(first_name);
+    _StrToLower(last_name);
+    Developer dev = { 0 };
+    strcpy(dev.first_name, first_name);
+    strcpy(dev.last_name, last_name);
+    int i = 0;
+    int employee_hash  = _DBHash(&dev);
+    while(i < MAX_ENTRYS_IN_TABLE){
+        bool_t first_name_equals = strcmp(first_name, employees[employee_hash]->first_name) == STRINGS_EQUALS;
+        bool_t last_name_equals  = strcmp(last_name, employees[employee_hash]->last_name) == STRINGS_EQUALS;
+        if (first_name_equals && last_name_equals)
+            return employee_hash;
+        i++;
+        employee_hash++;
+        employee_hash %= MAX_ENTRYS_IN_TABLE;
+    }
+    return ERROR_EMPLOYEE_NOT_EXIST;    
 }
-
+bool_t DBEmployeeExists(char* first_name, char* last_name){
+    return DBGetEmployeeKey(first_name, last_name) != ERROR_EMPLOYEE_NOT_EXIST;
+}
+bool_t DBCandidateExists(char* first_name, char* last_name){
+    return DBGetCandidateKey(first_name, last_name) != ERROR_CANDIDATE_NOT_EXIST;
+}
 bool_t DBEmployeesTableFull(){
     int i = 0; 
     for(i = 0; i < MAX_ENTRYS_IN_TABLE; i++)
@@ -574,14 +774,39 @@ bool_t DBCandidatesTableEmpty(){
 // privates
 int _DBHash(Developer* _developer){
     char first_name_first_char_lowercased = _CharToLowercase(_developer->first_name[0]);
-    char last_name_first_char_lowercased  = _CharToLowercase(_developer->last_name[1]);
-    return (first_name_first_char_lowercased + last_name_first_char_lowercased) % MAX_ENTRYS_IN_TABLE;
+    char last_name_first_char_lowercased  = _CharToLowercase(_developer->last_name[0]);
+    unsigned char addition = first_name_first_char_lowercased + last_name_first_char_lowercased;
+    return addition % MAX_ENTRYS_IN_TABLE;
+}
+
+void _DBRemoveCompanyRecommenders(Developer* candidate){
+    if (candidate == NULL) return;
+
+    int i = 0;
+    for (i = 0; i < MAX_COMPANY_RECOMMENDERS; i++)
+        if(candidate->company_recommenders[i] != NULL)
+            candidate->company_recommenders[i] = NULL;
+}
+void _DBLowerAllData(Developer* dev){
+    if (dev == NULL) return;
+
+    _StrToLower(dev->first_name);
+    _StrToLower(dev->last_name);
+    _StrToLower(dev->degree);
 }
 char _CharToLowercase(const char to_lower){
     if (to_lower >= 'A' && to_lower <= 'Z')
         return to_lower + ASCII_OFFSET_UPPERCASE_TO_LOWERCASE;
 
     return to_lower;
+}
+
+void _StrFormatWithFirstAndLastNames(char* destination, char* format, Developer* dev){
+    if (destination == NULL ||
+        format == NULL ||
+        dev == NULL) return;
+
+    sprintf(destination, format, dev->first_name, dev->last_name);
 }
 #pragma endregion // DB
 
@@ -591,6 +816,7 @@ void MemoryCleanExit(){
     for (i = 0; i < MAX_ENTRYS_IN_TABLE; i++){
         int j = 0;
         _MemoryCleanCandidateRecommenders(candidates[i]);
+        free(candidates[i]);
     }  
 }
 void _MemoryCleanCandidateRecommenders(Developer* candidate){
@@ -599,12 +825,20 @@ void _MemoryCleanCandidateRecommenders(Developer* candidate){
     int i = 0;
     for(int i = 0; i < MAX_EXTERNAL_RECOMMENDERS; i++){
         if(candidate->external_recommenders[i] != NULL){
-            Recommender* temp_pointer = candidate->external_recommenders[i];
-            candidate->external_recommenders[i] = NULL;
             free(candidate->external_recommenders[i]);
             candidate->external_recommenders[i] = NULL;
-            temp_pointer = NULL;
         }
     } 
+}
+void _MemoryCleanCandidateCompanyRecommenders(Developer* candidate){
+      if (candidate == NULL) return;
+    
+    int i = 0;
+    for(int i = 0; i < MAX_COMPANY_RECOMMENDERS; i++){
+        if(candidate->company_recommenders[i] != NULL){
+            free(candidate->company_recommenders[i]);
+            candidate->company_recommenders[i] = NULL;
+        }
+    }   
 }
 #pragma endregion
