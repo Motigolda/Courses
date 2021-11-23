@@ -513,9 +513,6 @@ void _ControllerCommandInsertNewCandidate(){
                         have_another_one = UIYesNoInput("Do you have another one? ");
                 }
             }
-                
-
-
         }
         else{
         
