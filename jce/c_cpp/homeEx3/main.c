@@ -6,6 +6,9 @@
 #define TRUE    1
 #define FALSE   0 
 
+#define ANSWER_YES TRUE
+#define ANSWER_NO FALSE
+#define YES_SIGN "y"
 #define MAX_COMPANY_RECOMMENDERS 2
 #define MAX_EXTERNAL_RECOMMENDERS 2
 
@@ -24,7 +27,8 @@
 2. Print workers.\n\
 3. Insert new Candidate.\n\
 4. Hire candidate.\n\
-5. Exit\n"
+5. Exit\n\
+other - help\n"
 
 #define COMMAND_WAITING_SIGN "> "
 #define STRINGS_EQUALS 0
@@ -35,6 +39,7 @@
 
 // ------- Structs & Types -------
 typedef int bool_t;
+typedef bool_t yes_no_answer_t;
 
 typedef struct recommender {
 	char first_name[STRING_LENGTH];
@@ -75,15 +80,16 @@ typedef enum error_code_t{
     ERROR_UNKNOWN_COMMAND,
     ERROR_CANDIDATE_EXIST,
     ERROR_EMPLOYEE_EXIST,
-    ERROR_NULL_POINTER
+    ERROR_NULL_POINTER,
+    ERROR_UNKNOWN
 } error_code_t;
 
 #define MSG_CANDIDATE_NOT_EXIST         "The candidate does\'nt exists.\n"
 #define MSG_CANDIDATE_NOT_EXIST_FORMAT  "The candidate %s %s does\'nt exists.\n"
 #define MSG_EMPLOYEE_NOT_EXIST          "The employee does\'nt exists.\n"
 #define MSG_EMPLOYEE_NOT_EXIST_FORMAT   "The employee %s %s does\'nt exists.\n"
-#define MSG_MAX_EMPLOYEES               "The employees table is full.\n"
-#define MSG_MAX_CANDIDATES              "The candidates table is full.\n"
+#define MSG_MAX_EMPLOYEES               "Our company is fully hired!\n"
+#define MSG_MAX_CANDIDATES              "There are no more place for a new candidates.\n"
 #define MSG_UNKNOWN_COMMAND             "Unknown command.\n"
 #define MSG_UNKNOWN_COMMAND_FORMAT      "Unknown command: %s\n"
 #define MSG_NO_EMPLOYEES                "No employees in the company.\n"
@@ -96,6 +102,8 @@ typedef enum error_code_t{
 #define MSG_CANDIDATE_ADD_SUCCESS_FORMAT "The candidate %s %s added successfully.\n"    
 #define MSG_UNKNOWN_ERROR               "Unknown Error\n"    
 #define MSG_NULL_POINTER                "Null pointer error.\n"
+#define MSG_CANDIDATE_HIRED             "The candidate is hired and now he is an employee.\n"
+#define MSG_CANDIDATE_HIRED_FORMAT      "The candidate %s %s is hired and now he is an employee.\n"
 #define MSG_EXIT                        "-----------------------------------------------\n\
 Thanks for using HR Software By Moti Goldstein.\n\
 -----------------------------------------------\n"
@@ -117,8 +125,11 @@ void UIShowCommandList();
 void UIShowCandidates(Developer *candidates[]);
 void UIShowEmployees(Developer *employees[]);
 void UIWaitForCommand(char* command);
-void UIGetNewCandidate(Developer *new_candidate, Developer company_recommenders[], Recommender external_recommenders[]);
+void UIGetNewCandidateWithoutRecommenders(Developer *new_candidate);
 void UIGetCandidateToHire(Developer *candidate_to_hire);
+void UIGetCompanyRecommender(Developer* employee);
+void UIGetExternalRecommender(Recommender* recommender);
+yes_no_answer_t UIYesNoInput(char* question);
 
 // messages and error reporting
 void UIShowMessage(char* message);
@@ -168,7 +179,8 @@ bool_t HRAreThereCandidates();
 bool_t HRAreThereEmployees();
 bool_t HRISCandidatesDBFull();
 bool_t HRISEmployeesDBFull();
-
+bool_t HRIsCandidateExist(Developer *candidate);
+bool_t HRIsEmployeeExist(Developer *employee);
 // - DATA Layer: starts with DB, stands for DataBase
 // - no logic, only duplicates and data existance checks
 error_code_t DBAddCandidate(Developer candidate);
@@ -195,15 +207,8 @@ void _MemoryCleanCandidateCompanyRecommenders(Developer* candidate);
 // ------- main program -------
 //
 int main(){
-    // ControllerMainLoop();
-    UIShowCandidates(HRGetCandidates());
-    Developer candidate = { 0 };
-    strcpy(candidate.first_name, "Moti");
-    strcpy(candidate.last_name, "Goldstein");
-    strcpy(candidate.degree, "No Degree");
+    ControllerMainLoop();
 
-    DBAddCandidate(candidate);
-    UIShowCandidates(HRGetCandidates());
     MemoryCleanExit();
     return 0;
 }
@@ -219,89 +224,42 @@ void UIShowCommandList(){
 void UIShowCandidates(Developer *candidates[]){
     printf("---- Showing Candidates ----\n");
     int i = 0;
+    int candidates_counter = 0;
     for (i = 0; i < MAX_ENTRYS_IN_TABLE; i++){
-        if(candidates[i] != NULL)
+        if(candidates[i] != NULL){
             _UIPrintCandidate(candidates[i]);
+            candidates_counter++;
+        }
     }
-    printf("--- End of candidates ----\n");
+    if (candidates_counter == 1)
+        printf("--- There is %d candidate ---\n", candidates_counter);
+    else
+        printf("--- There are %d candidates ---\n", candidates_counter);
+    printf("--- End of candidates ----\n\n");
 }
 
 void UIShowEmployees(Developer *employees[]){
     printf("---- Showing Employees ----\n");
     int i = 0;
+    int employees_counter = 0;
     for (i = 0; i < MAX_ENTRYS_IN_TABLE; i++){
-        if(employees[i] != NULL)
+        if(employees[i] != NULL){
             _UIPrintEmployee(employees[i]);
+            employees_counter++;
+        }
+            
     }
-    printf("---- End of employees ----\n");
+    if (employees_counter == 1)
+        printf("--- There is %d employee ---\n", employees_counter);
+    else
+        printf("--- There are %d employees ---\n", employees_counter);
+    printf("---- End of employees ----\n\n");
 }
 
 void UIWaitForCommand(char* command){
     printf(COMMAND_WAITING_SIGN);
     scanf("%s", command);
     *(command + 2) = 0;
-}
-
-void UIGetNewCandidate( Developer *new_candidate,    
-                        Developer company_recommenders[MAX_COMPANY_RECOMMENDERS], 
-                        Recommender external_recommenders[MAX_EXTERNAL_RECOMMENDERS]){
-    if( new_candidate == NULL ) return;
-    
-    int i = 0;
-    for (i = 0; i < MAX_COMPANY_RECOMMENDERS; i++)
-        new_candidate->company_recommenders[i] = NULL;
-    
-    for (i = 0; i < MAX_EXTERNAL_RECOMMENDERS; i++)
-        new_candidate->external_recommenders[i] = NULL;
-        
-    printf("Please enter candidate basic information:\n");
-    
-    printf("First name: ");
-    _UIGetInput(new_candidate->first_name, STRING_LENGTH);
-
-    printf("Last name: ");
-    _UIGetInput(new_candidate->last_name, STRING_LENGTH);
-
-    printf("Enter degree: ");
-    _UIGetInput(new_candidate->degree, STRING_LENGTH);
-
-    printf("Are there recommenders? [y for yes / other for no]: ");
-    char* are_there_recommenders = (char*)malloc(sizeof(char)*3);
-    _UIGetInput(are_there_recommenders, 3);
-
-    if(strcmp(are_there_recommenders, "y") == STRINGS_EQUALS){
-        for(i = 0; i < MAX_COMPANY_RECOMMENDERS; i++){
-            char add_another_recommender[3];
-            printf("Add company recommender? [y for yes / other for no]: ");
-            _UIGetInput(add_another_recommender, 3);
-
-            if (strcmp(add_another_recommender, "y") == STRINGS_EQUALS){
-                printf("Enter first name: ");
-                _UIGetInput(company_recommenders[i].first_name, STRING_LENGTH);
-                printf("Enter last name: ");
-                _UIGetInput(company_recommenders[i].last_name, STRING_LENGTH); 
-            }
-            else break;
-        }
-        for(i = 0; i < MAX_EXTERNAL_RECOMMENDERS; i++){
-            char add_another_recommender[3];
-            printf("Add external recommender? [y for yes / other for no]: ");
-            _UIGetInput(add_another_recommender, 3);
-
-            if (strcmp(add_another_recommender, "y") == STRINGS_EQUALS){
-
-                printf("Enter first name: ");
-                _UIGetInput(external_recommenders[i].first_name, STRING_LENGTH);
-                printf("Enter last name: ");
-                _UIGetInput(external_recommenders[i].last_name, STRING_LENGTH);
-                printf("Enter email: ");
-                _UIGetInput(external_recommenders[i].email, STRING_LENGTH);                            
-            }
-            else break;
-        }
-    }
-    free(are_there_recommenders);
-    are_there_recommenders = NULL;
 }
 
 void UIGetCandidateToHire(Developer *candidate_to_hire){
@@ -312,7 +270,6 @@ void UIGetCandidateToHire(Developer *candidate_to_hire){
     printf("Last name: ");
     _UIGetInput(candidate_to_hire->last_name, STRING_LENGTH);
 }
-
 // messages and error reporting
 void UIShowMessage(char* message){
     _UISetOutputColor(COLOR_DEFAULT);
@@ -339,11 +296,62 @@ void UIUnknownCommand(char* command){
     UIShowCommandList();
 }
 
+void UIGetNewCandidateWithoutRecommenders(Developer *new_candidate){
+    if (new_candidate == NULL) return;
+
+    printf("Enter new candidate information:\n");
+    printf("First name: ");
+    _UIGetInput(new_candidate->first_name, STRING_LENGTH);
+    printf("Last name: ");
+    _UIGetInput(new_candidate->last_name, STRING_LENGTH);
+    printf("Degree: ");
+    _UIGetInput(new_candidate->degree, STRING_LENGTH);
+}
+
+void UIGetCompanyRecommender(Developer* employee){
+    if (employee == NULL) return;
+    printf("Enter company recommender information:\n");
+    printf("First name: ");
+    _UIGetInput(employee->first_name, STRING_LENGTH);
+    printf("Last name: ");
+    _UIGetInput(employee->last_name, STRING_LENGTH);
+}
+
+void UIGetExternalRecommender(Recommender* recommender){
+    if (recommender == NULL) return;
+
+    printf("Enter external recommender information:\n");
+    printf("First name: ");
+    _UIGetInput(recommender->first_name, STRING_LENGTH);
+    printf("Last name: ");
+    _UIGetInput(recommender->last_name, STRING_LENGTH);
+    printf("Email: ");
+    _UIGetInput(recommender->email, STRING_LENGTH);
+}
+
+yes_no_answer_t UIYesNoInput(char* question){
+    if (question == NULL)
+        printf("Yes no question: ");
+    else
+        printf("%s", question);
+
+    printf(" [%s for yes, any key for no]: ", YES_SIGN);
+    char* raw_answer = (char*)malloc(sizeof(char)*3);
+    _UIGetInput(raw_answer, 3);
+    yes_no_answer_t answer = ANSWER_NO;
+    if (strcmp(raw_answer, YES_SIGN) == STRINGS_EQUALS)
+        answer = ANSWER_YES;
+
+    free(raw_answer);
+    raw_answer = NULL;
+    return answer;
+}
+
 // privates
 void _UIPrintCandidate(Developer* candidate){
     if (candidate == NULL) return;
 
-    printf("Candidate: %s %s, Degree: %s\n",  candidate->first_name, 
+    printf("## Candidate: \n%s %s, Degree: %s\n",  candidate->first_name, 
                 candidate->last_name,
                 candidate->degree);
 
@@ -367,7 +375,7 @@ void _UIPrintCandidate(Developer* candidate){
 void _UIPrintEmployee(Developer* employee){
     if (employee == NULL) return;
 
-    printf("Employee: %s %s, Degree: %s\n",  employee->first_name, 
+    printf("## Employee: \n%s %s, Degree: %s\n",  employee->first_name, 
                 employee->last_name,
                 employee->degree);
 }
@@ -459,31 +467,58 @@ void _ControllerCommandInsertNewCandidate(){
         UIShowWarning(ERROR_MAX_CANDIDATES, MSG_MAX_CANDIDATES);
     }
     else{
-        Developer candidate = { 0 };
-        Developer company_recommenders[MAX_EXTERNAL_RECOMMENDERS];
-        Recommender external_recommenders[MAX_EXTERNAL_RECOMMENDERS];
-        UIGetNewCandidate(&candidate, company_recommenders, external_recommenders);
-
-        int i = 0;
-        for(i = 0; i < MAX_COMPANY_RECOMMENDERS; i++){
-            Developer* company_recommender = (Developer*)malloc(sizeof(Developer));
-            strcpy(company_recommender->first_name, company_recommenders[i].first_name);
-            strcpy(company_recommender->last_name, company_recommenders[i].last_name);
-            candidate.company_recommenders[i] = company_recommender;
-        }
-        for (i = 0; i < MAX_EXTERNAL_RECOMMENDERS; i++){
-            Recommender* external_recommender = (Recommender*)malloc(sizeof(Recommender));
-            strcpy(external_recommender->first_name, external_recommenders[i].first_name);
-            strcpy(external_recommender->last_name, external_recommenders[i].last_name);
-            strcpy(external_recommender->email, external_recommenders[i].email);
-            candidate.external_recommenders[i] = external_recommender;
-        }
+        Developer candidate = { 0 };      
+        UIGetNewCandidateWithoutRecommenders(&candidate);
         
-        error_code_t err = HRInsertNewCandidate(candidate);
-        
-        _MemoryCleanCandidateCompanyRecommenders(&candidate);
-        _MemoryCleanCandidateRecommenders(&candidate);
+        if (HRIsCandidateExist(&candidate)){
+            char* candidate_exist_message = (char*)malloc(strlen(MSG_CANDIDATE_EXIST_FORMAT) + strlen(candidate.first_name) + strlen(candidate.last_name));
+            sprintf(candidate_exist_message, MSG_CANDIDATE_EXIST_FORMAT, candidate.first_name, candidate.last_name);
+            UIShowError(ERROR_CANDIDATE_EXIST, candidate_exist_message);
+            free(candidate_exist_message);
+            return;
+        }
 
+        error_code_t err = ERROR_UNKNOWN;
+        yes_no_answer_t insert_recommenders = UIYesNoInput("Do you want to enter recommenders?");
+        if (insert_recommenders == ANSWER_YES){
+            int i = 0;
+            yes_no_answer_t have_external_recommenders = UIYesNoInput("Do you want to enter external recommender?");
+            yes_no_answer_t have_another_one = ANSWER_YES;
+            if(have_external_recommenders){
+                for(i = 0; i < MAX_EXTERNAL_RECOMMENDERS; i++){
+                    if (!have_another_one) break;
+                    Recommender recommender = { 0 };
+                    UIGetExternalRecommender(&recommender);
+                    candidate.external_recommenders[i] = &recommender;
+                    if (i + 1 < MAX_EXTERNAL_RECOMMENDERS)
+                        have_another_one = UIYesNoInput("Do you have another one? ");
+                }
+            }
+            yes_no_answer_t have_company_recommenders = UIYesNoInput("Do you want to enter company recommender?");
+            if (have_company_recommenders){
+                have_another_one = ANSWER_YES;
+                i = 0;
+                while(i < MAX_EXTERNAL_RECOMMENDERS){
+                    if (!have_another_one) break;
+                    Developer employee = { 0 };
+                    UIGetCompanyRecommender(&employee);
+                    if (!HRIsEmployeeExist(&employee)){
+                        UIShowError(ERROR_EMPLOYEE_NOT_EXIST, MSG_EMPLOYEE_NOT_EXIST);
+                    }
+                    else {
+                        candidate.company_recommenders[i] = &employee;
+                        i++;
+                    }
+                    if (i < MAX_EXTERNAL_RECOMMENDERS)
+                        have_another_one = UIYesNoInput("Do you have another one? ");
+                }
+            }
+        }
+        else{
+        
+        }
+        err = HRInsertNewCandidate(candidate);
+        
         switch (err)
         {
             case SUCCESS:
@@ -522,11 +557,17 @@ void _ControllerCommandHireCandidate(){
         error_code_t err = HRHireCandidate(candidate_to_hire.first_name, candidate_to_hire.last_name);
         switch (err)
         {
-        case SUCCESS:
-            
+        case SUCCESS:{
+            UIShowMessage(MSG_CANDIDATE_HIRED);
             break;
+        }
+        case ERROR_MAX_EMPLOYEES:{
+            UIShowError(err, MSG_MAX_EMPLOYEES);
+            break;
+        }
         
         default:
+            UIShowError(err, MSG_UNKNOWN_ERROR);
             break;
         }
     }
@@ -552,13 +593,20 @@ char _CharToDigit(const char to_digit){
 }
 
 void _StrToLower(char* str){
+    if (str == NULL) return;
 
+    int current_char = 0;
+    while(*(str + current_char) != 0){
+        *(str + current_char) = _CharToLowercase(*(str + current_char));
+        current_char++;
+    }
 }
+
 #pragma endregion // Controller
 
 #pragma region Controller_Commands
 
-#pragma enregion // Controller Commands
+#pragma endregion // Controller Commands
 
 #pragma region HR_API
 
@@ -576,13 +624,25 @@ error_code_t HRInsertNewCandidate(Developer candidate){
 
     if (DBCandidateExists(candidate.first_name, candidate.last_name))
         return ERROR_CANDIDATE_EXIST;
+
+    return DBAddCandidate(candidate);
 }
 
 error_code_t HRHireCandidate(char* first_name, char* last_name){
     if (DBEmployeesTableFull())
         return ERROR_MAX_EMPLOYEES;
 
-    
+    if (DBEmployeeExists(first_name, last_name))
+        return ERROR_EMPLOYEE_EXIST;
+
+    Developer candidate = { 0 };
+    strcpy(candidate.first_name, first_name);
+    strcpy(candidate.last_name, last_name);
+    int err = DBAddEmployee(candidate);
+    if (err != 0)
+        return err;
+
+    return DBDeleteCandidate(candidate);
 }
 
 bool_t HRAreThereCandidates(){
@@ -592,6 +652,7 @@ bool_t HRAreThereCandidates(){
 bool_t HRAreThereEmployees(){
     return !DBEmployeesTableEmpty();
 }
+
 bool_t HRISCandidatesDBFull(){
     return DBCandidatesTableFull();
 }
@@ -600,9 +661,22 @@ bool_t HRISEmployeesDBFull(){
     return DBEmployeesTableFull();
 }
 
+bool_t HRIsCandidateExist(Developer *candidate){
+    if (candidate == NULL) return FALSE;
+
+    return DBCandidateExists(candidate->first_name, candidate->last_name);
+}
+
+bool_t HRIsEmployeeExist(Developer *employee){
+    if (employee == NULL) return FALSE;
+
+    return DBEmployeeExists(employee->first_name, employee->last_name);
+}
+
 #pragma endregion // HR API
 
 #pragma region DB
+
 error_code_t DBAddCandidate(Developer candidate){
     if (DBCandidateExists(candidate.first_name, candidate.last_name))
         return ERROR_CANDIDATE_EXIST;
@@ -618,14 +692,19 @@ error_code_t DBAddCandidate(Developer candidate){
             strcpy(candidates[candidate_hash]->degree, candidate.degree);
             int i = 0;
             for (i = 0; i < MAX_EXTERNAL_RECOMMENDERS; i++){
-                if (candidate.external_recommenders[i] != NULL)
-                    candidates[candidate_hash]->external_recommenders[i] = candidate.external_recommenders[i];
+                if (candidate.external_recommenders[i] != NULL){
+                    Recommender* current_reco = (Recommender*)malloc(sizeof(Recommender));
+                    memcpy(current_reco, candidate.external_recommenders[i], sizeof(Recommender));
+                    candidates[candidate_hash]->external_recommenders[i] = current_reco;
+                } 
                 else
                     candidates[candidate_hash]->external_recommenders[i] = NULL;
             }
             for (i = 0; i < MAX_COMPANY_RECOMMENDERS; i++){
-                if (candidate.company_recommenders[i] != NULL)
-                    candidates[candidate_hash]->company_recommenders[i] = candidate.company_recommenders[i];
+                if (candidate.company_recommenders[i] != NULL){
+                    int employee_recommender_key = DBGetEmployeeKey(candidate.company_recommenders[i]->first_name, candidate.company_recommenders[i]->last_name);
+                    candidates[candidate_hash]->company_recommenders[i] = employees[employee_recommender_key];
+                }   
                 else
                     candidates[candidate_hash]->company_recommenders[i] = NULL;
             }
@@ -649,7 +728,7 @@ error_code_t DBDeleteCandidate(Developer candidate){
     int candidate_key = DBGetCandidateKey(candidate.first_name, candidate.last_name);
     _MemoryCleanCandidateRecommenders(candidates[candidate_key]);
     free(candidates[candidate_key]);
-    candidates[candidate_key] == NULL;
+    candidates[candidate_key] = NULL;
     return SUCCESS;
 }
 
@@ -669,9 +748,10 @@ error_code_t DBAddEmployee(Developer candidate){
     int i = 0;
     while(i < MAX_ENTRYS_IN_TABLE){
         if (employees[employee_hash] == NULL){
-            employees[employee_hash] = candidates[candidate_key];
-            _MemoryCleanCandidateRecommenders(candidates[candidate_key]);
-            _DBRemoveCompanyRecommenders(employees[employee_hash]);
+            employees[employee_hash] = (Developer*)malloc(sizeof(Developer));
+            strcpy(employees[employee_hash]->first_name, candidates[candidate_key]->first_name);
+            strcpy(employees[employee_hash]->last_name, candidates[candidate_key]->last_name);
+            strcpy(employees[employee_hash]->degree, candidates[candidate_key]->degree);
             return SUCCESS;
         } 
         else {
@@ -707,6 +787,7 @@ int DBGetCandidateKey(char* first_name, char* last_name){
     }
     return ERROR_CANDIDATE_NOT_EXIST;
 } 
+
 int DBGetEmployeeKey(char* first_name, char* last_name){
     if (first_name == NULL || last_name == NULL) 
         return ERROR_NULL_POINTER;
@@ -719,22 +800,28 @@ int DBGetEmployeeKey(char* first_name, char* last_name){
     int i = 0;
     int employee_hash  = _DBHash(&dev);
     while(i < MAX_ENTRYS_IN_TABLE){
-        bool_t first_name_equals = strcmp(first_name, employees[employee_hash]->first_name) == STRINGS_EQUALS;
-        bool_t last_name_equals  = strcmp(last_name, employees[employee_hash]->last_name) == STRINGS_EQUALS;
-        if (first_name_equals && last_name_equals)
-            return employee_hash;
+        if(employees[employee_hash] != NULL){
+            bool_t first_name_equals = strcmp(first_name, employees[employee_hash]->first_name) == STRINGS_EQUALS;
+            bool_t last_name_equals  = strcmp(last_name, employees[employee_hash]->last_name) == STRINGS_EQUALS;
+            if (first_name_equals && last_name_equals)
+                return employee_hash;
+        }
+
         i++;
         employee_hash++;
         employee_hash %= MAX_ENTRYS_IN_TABLE;
     }
     return ERROR_EMPLOYEE_NOT_EXIST;    
 }
+
 bool_t DBEmployeeExists(char* first_name, char* last_name){
     return DBGetEmployeeKey(first_name, last_name) != ERROR_EMPLOYEE_NOT_EXIST;
 }
+
 bool_t DBCandidateExists(char* first_name, char* last_name){
     return DBGetCandidateKey(first_name, last_name) != ERROR_CANDIDATE_NOT_EXIST;
 }
+
 bool_t DBEmployeesTableFull(){
     int i = 0; 
     for(i = 0; i < MAX_ENTRYS_IN_TABLE; i++)
@@ -793,6 +880,16 @@ void _DBLowerAllData(Developer* dev){
     _StrToLower(dev->first_name);
     _StrToLower(dev->last_name);
     _StrToLower(dev->degree);
+
+    int i = 0;
+
+    for (i = 0; i < MAX_EXTERNAL_RECOMMENDERS; i++){
+        if (dev->external_recommenders[i] != NULL){
+            _StrToLower(dev->external_recommenders[i]->first_name);
+            _StrToLower(dev->external_recommenders[i]->last_name);
+            _StrToLower(dev->external_recommenders[i]->email);
+        }
+    }
 }
 char _CharToLowercase(const char to_lower){
     if (to_lower >= 'A' && to_lower <= 'Z')
@@ -811,14 +908,18 @@ void _StrFormatWithFirstAndLastNames(char* destination, char* format, Developer*
 #pragma endregion // DB
 
 #pragma region Memory_clean
+
 void MemoryCleanExit(){
     int i = 0;
     for (i = 0; i < MAX_ENTRYS_IN_TABLE; i++){
-        int j = 0;
         _MemoryCleanCandidateRecommenders(candidates[i]);
         free(candidates[i]);
+        free(employees[i]);
+        candidates[i] = NULL;
+        employees[i] = NULL;
     }  
 }
+
 void _MemoryCleanCandidateRecommenders(Developer* candidate){
     if (candidate == NULL) return;
     
@@ -830,6 +931,7 @@ void _MemoryCleanCandidateRecommenders(Developer* candidate){
         }
     } 
 }
+
 void _MemoryCleanCandidateCompanyRecommenders(Developer* candidate){
       if (candidate == NULL) return;
     
@@ -841,4 +943,5 @@ void _MemoryCleanCandidateCompanyRecommenders(Developer* candidate){
         }
     }   
 }
+
 #pragma endregion
