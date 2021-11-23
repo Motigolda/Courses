@@ -335,7 +335,7 @@ yes_no_answer_t UIYesNoInput(char* question){
     else
         printf("%s", question);
 
-    printf(" [%s for yes, other for no]: ", YES_SIGN);
+    printf(" [%s for yes, any key for no]: ", YES_SIGN);
     char* raw_answer = (char*)malloc(sizeof(char)*3);
     _UIGetInput(raw_answer, 3);
     yes_no_answer_t answer = ANSWER_NO;
