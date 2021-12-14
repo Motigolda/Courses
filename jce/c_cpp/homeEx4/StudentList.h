@@ -12,7 +12,7 @@ typedef struct StudentNode {
 } StudentNode;
 
 typedef struct StudentList {
-    struct StudentList *head;
+    StudentNode *head;
 } StudentList;
 
 // list functions

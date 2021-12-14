@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "StudentList.h"
-
-#define STUDNET_TEMPLATE "Student ID: %d\nGrade1: %d\nGrade2: %d"
+#include <stdlib.h>
+#define STUDENT_TEMPLATE "Student ID: %d\nGrade1: %d\nGrade2: %d"
 
 StudentList* createList(){
     StudentList* student_list = malloc(sizeof(StudentList));
@@ -28,7 +28,7 @@ void printStudentNode(StudentNode* const student_node){
 
     if (student_node->st == NULL) return;
     
-    printf(STUDNET_TEMPLATE, 
+    printf(STUDENT_TEMPLATE, 
         student_node->st->id, 
         student_node->st->grade1, 
         student_node->st->grade2);
