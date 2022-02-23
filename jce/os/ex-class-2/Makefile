@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -g
+CFLAGS=-Wall -g 
 BIN_DIR=bin
 
 verify_bin_dir:
