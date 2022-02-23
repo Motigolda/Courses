@@ -7,5 +7,6 @@ void GetInputLineFromUser(char **line){
 }
 
 int CountWords(char *line){
-
+    
+    return 0;
 }
