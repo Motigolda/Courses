@@ -3,9 +3,7 @@
 
 #define ERROR_NULL_STR -1
 
-// does nothing if line == NULL
-// assumes line is dynamic allocated memory
-void GetInputLineFromUser(char **line);
+char* GetInputLineFromUser();
 
 // return ERROR_NULL_STR if failed
 int CountWords(char *line);
