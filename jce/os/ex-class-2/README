@@ -1,0 +1,4 @@
+To compile:
+    - The current directory need to be the project 
+    - Run 'make all'
+    - This will compile the project to bin/word_counter
