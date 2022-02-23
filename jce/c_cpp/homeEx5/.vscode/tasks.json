@@ -1,0 +1,31 @@
+{
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "C/C++: g++ Build Project",
+            "command": "/bin/g++",
+            "args": [
+                "-fdiagnostics-color=always",
+                "-g",
+                "/home/moti/lab/repos/courses/jce/c_cpp/homeEx5/main.cpp ", 
+                "/home/moti/lab/repos/courses/jce/c_cpp/homeEx5/includes/*.h ",
+                "/home/moti/lab/repos/courses/jce/c_cpp/homeEx5/src/*.cpp ",
+                
+                "-o",
+                "/home/moti/lab/repos/courses/jce/c_cpp/homeEx5/bin/main"
+            ],
+            "options": {
+                "cwd": "/home/moti/lab/repos/courses/jce/c_cpp/homeEx5/"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "compiler: /bin/g++"
+        }
+    ],
+    "version": "2.0.0"
+}
