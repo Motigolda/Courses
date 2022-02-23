@@ -2,8 +2,8 @@
 
 #include "word_count.h"
 
-void GetInputLineFromUser(char **line){
-
+char* GetInputLineFromUser(){
+    
 }
 
 int CountWords(char *line){
@@ -11,6 +11,12 @@ int CountWords(char *line){
         return ERROR_NULL_STR;
     
     int words_count = 0;
-    
-    return 0;
+    int i = 0;
+    while(line[i] != 0){
+        if (line[i] == ' ')
+            words_count++;
+
+        i++;
+    }
+    return words_count;
 }
