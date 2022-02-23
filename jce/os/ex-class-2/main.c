@@ -4,14 +4,9 @@
 #include "word_count.h"
 
 int main(void){
-	char *str = malloc(1);	
-	
-	GetInputLineFromUser(&str);
 
-	if(str == NULL){
-		printf("Error: cant get input from user.\n");
-		exit(1);
-	}
+	char *line =  NULL;	
+	line = GetInputLineFromUser();
 
 	int word_count = CountWords(str);
 
@@ -20,7 +15,7 @@ int main(void){
 	else
 		printf("Error occurred.\n");
 	
-	free(str);
+	free(line);
 
 	return 0;
 }
