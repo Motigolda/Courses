@@ -2,7 +2,7 @@
 
 #include "word_count.h"
 
-void GetInputLineFromUser(char *line){
+void GetInputLineFromUser(char **line){
 
 }
 
