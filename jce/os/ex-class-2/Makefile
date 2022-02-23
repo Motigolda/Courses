@@ -2,11 +2,14 @@ CC=gcc
 CFLAGS=-Wall -g
 BIN_DIR=bin
 
-word_count.o:
+verify_bin_dir:
+	-mkdir bin
+
+word_count.o: verify_bin_dir
 	@echo "Creating word_count.o"
 	$(CC) $(CFLAGS) -c word_count.c -o $(BIN_DIR)/word_count.o
 
-main.o:
+main.o: verify_bin_dir
 	@echo "Creating main.o"
 	$(CC) $(CFLAGS) -c main.c -o $(BIN_DIR)/main.o
 
