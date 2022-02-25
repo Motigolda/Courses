@@ -46,17 +46,24 @@ int main(void){
                 break;
             }
         }
+        
+        if(str_input[0] == 0) 
+            continue;
 
         if(strcmp(str_input, "exit") == 0)
             break;
         else if(strcmp(str_input, "history") == 0){
+            char *history_copy = malloc(strlen(history) + 1);
+            strcpy(history_copy, history);
+
             char *line;
-            line = strtok(history, "\n");
+            line = strtok(history_copy, "\n");
             int history_entry_num = 0;
             while(line != NULL){
                 printf("%d: %s\n", history_entry_num++, line);
                 line = strtok(NULL, "\n");
             }
+            free(history_copy);
         }
         else{
             unsigned int word_count = 0;
