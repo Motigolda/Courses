@@ -1,0 +1,3 @@
+to compile, please use "make all". the outputs will be in bin:
+    1-2: bin/processes 
+    3: bin/cmd

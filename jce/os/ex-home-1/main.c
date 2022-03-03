@@ -6,7 +6,6 @@
 #define HISTORY_FILE_PATH "history.txt"
 
 #define WAIT_FOR_USER_INPUT_STR "Enter String, or \"exit\" to end program:\n"
-
 #define CMD_EXIT_STR "exit"
 #define CMD_PRINT_HISTORY_STR "history"
 
