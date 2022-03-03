@@ -2,6 +2,9 @@ CC=gcc
 CFLAGS=-Wall -g -fdiagnostics-color=always
 BIN_DIR=bin
 
+bin_dir_creator:
+	-mkdir ${BIN_DIR}
+
 main.o:
 	${CC} ${CFLAGS} -c main.c -o ${BIN_DIR}/main.o
 
@@ -13,7 +16,7 @@ word_counter: main.o
 clean:
 	rm ${BIN_DIR}/*.o
 
-all: word_counter clean
+all: bin_dir_creator word_counter clean
 	@echo "------- End Of Compiliation -------"
 
 

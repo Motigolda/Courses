@@ -1,3 +1,19 @@
+/*
+Ex1 - String Parser
+Authored by Mordechai Goldstein
+318530136
+
+==Description==
+This program gets string where its maximum length is 509 (510 - null terminator) chars.
+For each string it returns the word count and the char count of the string:
+- Word Count stands for the number of sequences that contains non-space, newline or null-terminator chars in the string.
+- Char Count stands for the number of characters that are not spaces, newlines and null-terminators in the string.
+In addition, the program saves the history of the strings that entered to it.
+To parse a string, just enter it.
+For watching in the history, type "history"
+For exit, type "exit".
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,12 +22,15 @@
 #define HISTORY_FILE_PATH "history.txt"
 
 #define WAIT_FOR_USER_INPUT_STR "Enter String, or \"exit\" to end program:\n"
+
+// When command entered, these are the strings that compared with the enterd text
 #define CMD_EXIT_STR "exit"
 #define CMD_PRINT_HISTORY_STR "history"
 
-#define MAX_LINE_LENGTH 510
+#define MAX_LINE_LENGTH (510)
 
-#define OUT
+// Macro that helps to recognize output parameters in function
+#define OUT 
 
 typedef struct _history_t{
     // Assumes that history_string is always dynamically allocated
@@ -32,6 +51,7 @@ typedef enum _user_command_t{
     CMD_EMPTY_LINE
 } user_command_t;
 
+// File functions
 long GetFileSize(char* file_path){
     if (file_path == NULL)
         return -1;
@@ -87,7 +107,7 @@ void SaveTextFile(char* file_path, char* file_text){
 
     fclose(fp);
 }
-
+// History functions
 history_t* LoadHistoryFromFile(char* history_file_path){
     if (history_file_path == NULL)
         return NULL;
@@ -104,6 +124,9 @@ history_t* LoadHistoryFromFile(char* history_file_path){
         ReadTextFile(history_file_path, history.history_string, file_size);
     }
     else{
+        // In case of empty or non exist history file - create empty string.
+        // Thus when new strings loaded into the history object, 
+        // strcat() will work as excepted.
         history.history_string = malloc(1);
         *history.history_string = 0;
     }
@@ -159,7 +182,7 @@ void PrintHistory(history_t *history){
     free(history_copy);
     
 }
-
+// Statistics functions
 line_stats_t* GetLineStats(char *line){
     if (line == NULL)
         return NULL;
@@ -199,7 +222,7 @@ void PrintLineStats(line_stats_t* stats){
     printf("%u words\n", stats->word_count);
     printf("%u chars\n", stats->char_count);
 }
-
+// Command parser
 user_command_t GetSelectedCommand(line_stats_t *stats){
     if(stats == NULL)
         return CMD_UNKNOWN;
@@ -219,7 +242,7 @@ user_command_t GetSelectedCommand(line_stats_t *stats){
     return CMD_PRINT_STATS;
     
 }
-
+// Get input function
 void GetLineFromUser(OUT char *line_from_user){
     if (line_from_user == NULL)
         return;
@@ -233,7 +256,7 @@ void GetLineFromUser(OUT char *line_from_user){
 
     line_from_user[MAX_LINE_LENGTH - 1] = 0;
 }
-
+// Call this to release the memory that allocated for history->history_string
 void FreeHistoryInstanceString(history_t* history){
     if (history == NULL)
         return;
@@ -244,7 +267,7 @@ void FreeHistoryInstanceString(history_t* history){
     free(history->history_string);
     history->history_string = NULL;
 }
-
+// The main loop: get info from user -> do the wanted command -> repeat until exit command.
 int main(void){
     history_t* history = LoadHistoryFromFile(HISTORY_FILE_PATH);
     
