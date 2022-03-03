@@ -1,0 +1,20 @@
+exit
+-> "exit" -> close
+-> " exit" -> close
+-> "exit " -> close
+-> " exit " -> close
+-> "exit 123" -> treat like "other text"
+
+history
+-> "history" -> print full history
+-> " history" -> print full history
+-> "history " -> print full history
+-> " history " -> print full history
+-> "history 123" -> treat like "other text"
+
+other text:
+-> [line of text] -> [word count, word=sequence of non space/newline chars] [char count, w/o spaces]
+-> [empty line] -> get new line w/o doing nothing 
+-> [only spaces] -> get new line w/o doing nothing
+-> [line length > MAX_LINE_LENGTH] -> treat the first MAX_LINE_LENGTH - 1 chars
+

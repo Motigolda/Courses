@@ -38,14 +38,10 @@ int main(void){
     char str_input[MAX_LINE_LENGTH] = { 0 };
     while(true){
         printf("Enter String [\'exit\' to exit, \'history\' to print history]: ");
-
-        for(int i = 0; i < MAX_LINE_LENGTH - 1; i++){
-            str_input[i] = fgetc(stdin);
-            if(str_input[i] == '\n'){
-                str_input[i] = 0;
-                break;
-            }
-        }
+        
+        fgets(str_input, MAX_LINE_LENGTH, stdin);
+        str_input[MAX_LINE_LENGTH - 1] = 0;
+        
         
         if(str_input[0] == 0) 
             continue;
@@ -70,7 +66,7 @@ int main(void){
             unsigned int char_count = 0;
             bool in_word = false;
             int i = 0;
-            while(str_input[i] != 0){
+            while(str_input[i] != 0 && str_input[i] != '\n'){
                 if(str_input[i] != ' ' && !in_word){
                     in_word = true;
                     word_count++;
