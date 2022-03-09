@@ -1,0 +1,7 @@
+/bin
+/.vscode
+
+*.o
+arch
+history.txt
+parse_errors.py
