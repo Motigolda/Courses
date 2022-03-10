@@ -19,14 +19,14 @@ For exit, type "exit".
 #include <string.h>
 #include <stdbool.h>
 #include <sys/wait.h>
-
+#include <unistd.h>
 
 #define HISTORY_FILE_PATH "history.txt"
 
 #define WAIT_FOR_USER_INPUT_STR "Enter String, or \"exit\" to end program:\n"
 
 // When command entered, these are the strings that compared with the enterd text
-#define CMD_EXIT_STR "exit"
+#define CMD_EXIT_STR "done"
 #define CMD_PRINT_HISTORY_STR "history"
 
 #define MAX_LINE_LENGTH (512)
@@ -43,6 +43,7 @@ typedef struct _line_stats_t{
     unsigned int word_count;
     unsigned int char_count;
     char first_word_buffer[MAX_LINE_LENGTH];
+    char **words_array;
 } line_stats_t;
 
 typedef enum _user_command_t{
@@ -50,7 +51,8 @@ typedef enum _user_command_t{
     CMD_PRINT_STATS = 0,
     CMD_PRINT_HISTORY,
     CMD_EXIT,
-    CMD_EMPTY_LINE
+    CMD_EMPTY_LINE,
+    CMD_RUN_TERMINAL_PROCESS
 } user_command_t;
 
 // File functions
@@ -190,25 +192,34 @@ line_stats_t* GetLineStats(char *line){
         return NULL;
 
     static line_stats_t stats = { 0 };
+    char current_word_buffer[MAX_LINE_LENGTH] = { 0 };
+    int current_word_ch_index = 0;
 
     bool in_word = false;
     int i = 0;
-    int first_line_buffer_index = 0;
 
-    while(line[i] != 0 && line[i] != '\n'){
+    while(line[i] != 0){
         if(line[i] != ' ' && !in_word){
             in_word = true;
             stats.word_count++;
         }
-
-        if(line[i] == ' ')
+        if(line[i] == ' ' || line[i] == '\n'){
             in_word = false;
+
+            if (current_word_ch_index > 0){
+                stats.words_array = realloc(stats.words_array, sizeof(char**) * (stats.word_count+1));
+                stats.words_array[stats.word_count-1] = malloc(current_word_ch_index + 1);
+                strcpy(stats.words_array[stats.word_count-1], current_word_buffer); 
+                memset(current_word_buffer, 0, MAX_LINE_LENGTH);
+                current_word_ch_index = 0;
+            }  
+        }
         else
             stats.char_count++;
 
-        if(stats.word_count == 1 && line[i] != ' '){
-            stats.first_word_buffer[first_line_buffer_index] = line[i];
-            first_line_buffer_index++;
+        if(line[i] != ' ' && line[i] != '\n'){
+            current_word_buffer[current_word_ch_index] = line[i];
+            current_word_ch_index++;
         }
 
         i++;
@@ -221,6 +232,11 @@ void ClearStats(line_stats_t *stats){
     if (stats == NULL)
         return;
 
+    for (int i = 0; i < stats->word_count; i++)
+        if (stats->words_array[i] != NULL)
+            free(stats->words_array[i]);
+    
+    free(stats->words_array);
     stats->char_count = 0;
     stats->word_count = 0;
     memset(stats->first_word_buffer, 0, MAX_LINE_LENGTH);  
@@ -238,20 +254,16 @@ user_command_t GetSelectedCommand(line_stats_t *stats){
     if(stats == NULL)
         return CMD_UNKNOWN;
 
-    if (stats->word_count > 1)
-        return CMD_PRINT_STATS;
-
-    if (strcmp(stats->first_word_buffer, CMD_PRINT_HISTORY_STR) == 0)
-        return CMD_PRINT_HISTORY;
-    
-    if (strcmp(stats->first_word_buffer, CMD_EXIT_STR) == 0)
-        return CMD_EXIT;
-    
     if (stats->word_count == 0 && stats->char_count == 0)
         return CMD_EMPTY_LINE;
 
-    return CMD_PRINT_STATS;
+    if (strcmp(stats->words_array[0], CMD_PRINT_HISTORY_STR) == 0)
+        return CMD_PRINT_HISTORY;
     
+    if (strcmp(stats->words_array[0], CMD_EXIT_STR) == 0)
+        return CMD_EXIT;
+    
+    return CMD_RUN_TERMINAL_PROCESS;
 }
 // Get input function
 void GetLineFromUser(OUT char *line_from_user){
@@ -277,6 +289,25 @@ void FreeHistoryInstanceString(history_t* history){
 
     free(history->history_string);
     history->history_string = NULL;
+}
+
+void RunUserTerminalProcess(line_stats_t *stats){
+    if (stats == NULL)
+        return;
+
+    pid_t check_me_after_fork = fork();
+
+    if (check_me_after_fork == 0){
+        stats->words_array = realloc(stats->words_array, (stats->word_count+1) * sizeof(char**));
+        stats->words_array[stats->word_count] = NULL;
+        execvp(stats->words_array[0], stats->words_array);
+    }
+    else if (0 < check_me_after_fork){
+        wait(NULL);
+    }
+    else{
+        perror("Cant run the command");
+    }
 }
 // The main loop: get info from user -> do the wanted command -> repeat until exit command.
 int main(void){
@@ -312,6 +343,9 @@ int main(void){
                 PrintHistory(history);
                 break;
             case CMD_EXIT:
+                break;
+            case CMD_RUN_TERMINAL_PROCESS:
+                RunUserTerminalProcess(stats);
                 break;
             default:
                 printf("Unknown Failure\n");
