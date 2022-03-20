@@ -28,7 +28,7 @@ For exit, type "exit".
 // When command entered, these are the strings that compared with the enterd text
 #define CMD_EXIT_STR "done"
 #define CMD_PRINT_HISTORY_STR "history"
-
+#define COMMAND_NOT_SUPPORTED_STR "Command not supported (Yet)\n"
 #define MAX_LINE_LENGTH (512)
 
 // Macro that helps to recognize output parameters in function
@@ -52,7 +52,8 @@ typedef enum _user_command_t{
     CMD_PRINT_HISTORY,
     CMD_EXIT,
     CMD_EMPTY_LINE,
-    CMD_RUN_TERMINAL_PROCESS
+    CMD_RUN_TERMINAL_PROCESS,
+    CMD_NOT_SUPPORTED
 } user_command_t;
 
 // File functions
@@ -257,6 +258,9 @@ user_command_t GetSelectedCommand(line_stats_t *stats){
 
     if (stats->word_count == 0 && stats->char_count == 0)
         return CMD_EMPTY_LINE;
+    
+    if (strcmp(stats->words_array[0], "cd") == 0)
+        return CMD_NOT_SUPPORTED;
 
     if (strcmp(stats->words_array[0], CMD_PRINT_HISTORY_STR) == 0)
         return CMD_PRINT_HISTORY;
@@ -346,11 +350,15 @@ int main(void){
                 break;
             case CMD_PRINT_HISTORY:
                 PrintHistory(history);
+                AppendEntryToHistory(history, input_line);
                 break;
             case CMD_EXIT:
                 break;
             case CMD_RUN_TERMINAL_PROCESS:
                 RunUserTerminalProcess(stats);
+                break;
+            case CMD_NOT_SUPPORTED:
+                printf(COMMAND_NOT_SUPPORTED_STR);
                 break;
             default:
                 printf("Unknown Failure\n");

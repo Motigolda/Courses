@@ -1,1 +1,0 @@
-zip ex2.zip ex2.c ex2b.c Makefile README 
