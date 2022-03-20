@@ -237,6 +237,7 @@ void ClearStats(line_stats_t *stats){
             free(stats->words_array[i]);
     
     free(stats->words_array);
+    stats->words_array = NULL;
     stats->char_count = 0;
     stats->word_count = 0;
     memset(stats->first_word_buffer, 0, MAX_LINE_LENGTH);  
@@ -300,7 +301,11 @@ void RunUserTerminalProcess(line_stats_t *stats){
     if (check_me_after_fork == 0){
         stats->words_array = realloc(stats->words_array, (stats->word_count+1) * sizeof(char**));
         stats->words_array[stats->word_count] = NULL;
-        execvp(stats->words_array[0], stats->words_array);
+        bool command_run_successfully = execvp(stats->words_array[0], stats->words_array) != -1;
+        if(!command_run_successfully){
+            perror("ERR");
+            exit(1);
+        }       
     }
     else if (0 < check_me_after_fork){
         wait(NULL);
