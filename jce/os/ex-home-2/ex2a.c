@@ -23,7 +23,9 @@ For exit, type "exit".
 
 #define HISTORY_FILE_PATH "history.txt"
 
-#define WAIT_FOR_USER_INPUT_STR "Enter String, or \"exit\" to end program:\n"
+char *current_dir_text;
+
+#define WAIT_FOR_USER_INPUT_STR (current_dir_text != NULL ? current_dir_text : "next command")
 
 // When command entered, these are the strings that compared with the enterd text
 #define CMD_EXIT_STR "done"
@@ -277,7 +279,7 @@ void GetLineFromUser(OUT char *line_from_user){
 
     memset(line_from_user, 0, MAX_LINE_LENGTH);
 
-    printf(WAIT_FOR_USER_INPUT_STR);
+    printf("%s>", WAIT_FOR_USER_INPUT_STR);
 
 
     fgets(line_from_user, MAX_LINE_LENGTH, stdin);
@@ -296,7 +298,7 @@ void FreeHistoryInstanceString(history_t* history){
     history->history_string = NULL;
 }
 
-void RunUserTerminalProcess(line_stats_t *stats){
+void RunUserTerminalProcess(line_stats_t *stats, history_t* history){
     if (stats == NULL)
         return;
 
@@ -308,6 +310,10 @@ void RunUserTerminalProcess(line_stats_t *stats){
         bool command_run_successfully = execvp(stats->words_array[0], stats->words_array) != -1;
         if(!command_run_successfully){
             perror("ERR");
+            ClearStats(stats);
+            SaveHistoryToFile(history, HISTORY_FILE_PATH);
+            FreeHistoryInstanceString(history);
+            free(current_dir_text);
             exit(1);
         }       
     }
@@ -320,6 +326,8 @@ void RunUserTerminalProcess(line_stats_t *stats){
 }
 // The main loop: get info from user -> do the wanted command -> repeat until exit command.
 int main(void){
+    current_dir_text = getcwd(NULL, 0);
+
     history_t* history = LoadHistoryFromFile(HISTORY_FILE_PATH);
     
     if (history == NULL){
@@ -355,7 +363,8 @@ int main(void){
             case CMD_EXIT:
                 break;
             case CMD_RUN_TERMINAL_PROCESS:
-                RunUserTerminalProcess(stats);
+                RunUserTerminalProcess(stats, history);
+                AppendEntryToHistory(history, input_line);
                 break;
             case CMD_NOT_SUPPORTED:
                 printf(COMMAND_NOT_SUPPORTED_STR);
@@ -372,5 +381,7 @@ int main(void){
 
     FreeHistoryInstanceString(history);
     
+    free(current_dir_text);
+
     return 0;
 }
