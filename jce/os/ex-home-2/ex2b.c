@@ -36,6 +36,7 @@ unsigned int this_run_words_counter = 0;
 #define CMD_PRINT_HISTORY_STR "history"
 #define COMMAND_NOT_SUPPORTED_STR "Command not supported (Yet)\n"
 #define MAX_LINE_LENGTH (512)
+#define IS_NULL(pointer) (pointer == NULL)
 
 // Macro that helps to recognize output parameters in function
 #define OUT 
@@ -59,9 +60,14 @@ typedef enum _user_command_t{
     CMD_EXIT,
     CMD_EMPTY_LINE,
     CMD_RUN_TERMINAL_PROCESS,
+    CMD_RUN_TERMINAL_PROCESS_FROM_HISTRORY,
     CMD_NOT_SUPPORTED
 } user_command_t;
 
+void IncrementCommandsCounter();
+void AddToThisRunWordsCounter(unsigned int num);
+void RunUserTerminalProcess(line_stats_t *stats, history_t* history);
+void RunUserTerminalProccessFromHistory(line_stats_t *stats, history_t* history);
 // File functions
 long GetFileSize(char* file_path){
     if (file_path == NULL)
@@ -183,7 +189,7 @@ void PrintHistory(history_t *history){
 
     char *line_in_history;
     line_in_history = strtok(history_copy, "\n");
-    unsigned int history_entry_num = 0;
+    unsigned int history_entry_num = 1;
 
     while(line_in_history != NULL){
         printf("%u: %s\n", history_entry_num++, line_in_history);
@@ -204,13 +210,15 @@ line_stats_t* GetLineStats(char *line){
 
     bool in_word = false;
     int i = 0;
+    if (line[0] == '\n')
+        return &stats;
 
     while(line[i] != 0){
         if(line[i] != ' ' && !in_word){
             in_word = true;
             stats.word_count++;
         }
-        if(line[i] == ' ' || line[i] == '\n'){
+        if(line[i] == ' ' || line[i] == '\n' || line[i] == 0){
             in_word = false;
 
             if (current_word_ch_index > 0){
@@ -265,8 +273,11 @@ user_command_t GetSelectedCommand(line_stats_t *stats){
     if (stats->word_count == 0 && stats->char_count == 0)
         return CMD_EMPTY_LINE;
     
-    if (strcmp(stats->words_array[0], "cd") == 0)
+    if (!IS_NULL(stats->words_array) && strcmp(stats->words_array[0], "cd") == 0)
         return CMD_NOT_SUPPORTED;
+
+    if (stats->word_count == 1 && stats->words_array[0][0] == '!')
+        return CMD_RUN_TERMINAL_PROCESS_FROM_HISTRORY;
 
     if (strcmp(stats->words_array[0], CMD_PRINT_HISTORY_STR) == 0)
         return CMD_PRINT_HISTORY;
@@ -275,6 +286,39 @@ user_command_t GetSelectedCommand(line_stats_t *stats){
         return CMD_EXIT;
     
     return CMD_RUN_TERMINAL_PROCESS;
+}
+
+void HandleUserSelectedCommand(line_stats_t *stats, user_command_t user_command, history_t *history, char* input_line){
+    switch (user_command)
+        {
+            case CMD_EMPTY_LINE:
+                break;
+            case CMD_PRINT_HISTORY:
+                PrintHistory(history);
+                AppendEntryToHistory(history, input_line);
+                IncrementCommandsCounter();
+                break;
+            case CMD_EXIT:
+                IncrementCommandsCounter();
+                break;
+            case CMD_RUN_TERMINAL_PROCESS:
+                IncrementCommandsCounter();
+                RunUserTerminalProcess(stats, history);
+                AppendEntryToHistory(history, input_line);
+                AddToThisRunWordsCounter(stats->word_count);
+                break;
+            case CMD_NOT_SUPPORTED:
+                printf(COMMAND_NOT_SUPPORTED_STR);
+                IncrementCommandsCounter();
+                AddToThisRunWordsCounter(stats->word_count);
+                break;
+            case CMD_RUN_TERMINAL_PROCESS_FROM_HISTRORY:
+                RunUserTerminalProccessFromHistory(stats, history);
+                break;
+            default:
+                printf("Unknown Failure\n");
+                break;
+        }
 }
 // Get input function
 void GetLineFromUser(OUT char *line_from_user){
@@ -313,6 +357,7 @@ void DecrementCommandsCounter(){
 unsigned int GetThisRunCommandCounter(){
     return this_run_commands_counter;
 }
+
 void AddToThisRunWordsCounter(unsigned int num){
     this_run_words_counter += num;
 }
@@ -320,6 +365,7 @@ void AddToThisRunWordsCounter(unsigned int num){
 unsigned int GetThisRunWordsCounter(){
     return this_run_words_counter;
 }
+
 void RunUserTerminalProcess(line_stats_t *stats, history_t* history){
     if (stats == NULL)
         return;
@@ -346,7 +392,39 @@ void RunUserTerminalProcess(line_stats_t *stats, history_t* history){
         perror("Cant run the command");
     }
 }
+// assumes stats are contain the right structure of ! and number: "!<number>"
+void RunUserTerminalProccessFromHistory(line_stats_t *stats, history_t* history){
+    // extract the number of command
+    unsigned int command_number = 0;
+    command_number = atoi(&stats->words_array[0][1]);
+    char *history_copy = malloc(strlen(history->history_string) + 1);
+    strcpy(history_copy, history->history_string);
 
+    char *line_in_history;
+    line_in_history = strtok(history_copy, "\n");
+    unsigned int history_entry_num = 1;
+
+    while(line_in_history != NULL && history_entry_num < command_number){
+        history_entry_num++;
+        line_in_history = strtok(NULL, "\n");  
+    }
+
+    if (command_number <= history_entry_num){
+        char *line_in_history_with_newline = malloc(strlen(line_in_history) + 2);
+        memset(line_in_history_with_newline, 0, strlen(line_in_history) + 2);
+        strcpy(line_in_history_with_newline, line_in_history);
+        strcat(line_in_history_with_newline, "\n");
+        printf("%s>%s", WAIT_FOR_USER_INPUT_STR, line_in_history_with_newline);
+        ClearStats(stats);
+        stats = GetLineStats(line_in_history_with_newline);
+        HandleUserSelectedCommand(stats, GetSelectedCommand(stats), history, line_in_history_with_newline);
+        free(line_in_history_with_newline);
+    }
+    else
+        printf("Not in history\n");
+
+    free(history_copy);
+}
 // The main loop: get info from user -> do the wanted command -> repeat until exit command.
 int main(void){
     current_dir_text = getcwd(NULL, 0);
@@ -371,33 +449,8 @@ int main(void){
 
         current_selected_command = GetSelectedCommand(stats);
 
-        switch (current_selected_command)
-        {
-            case CMD_EMPTY_LINE:
-                break;
-            case CMD_PRINT_HISTORY:
-                PrintHistory(history);
-                AppendEntryToHistory(history, input_line);
-                IncrementCommandsCounter();
-                break;
-            case CMD_EXIT:
-                IncrementCommandsCounter();
-                break;
-            case CMD_RUN_TERMINAL_PROCESS:
-                IncrementCommandsCounter();
-                RunUserTerminalProcess(stats, history);
-                AppendEntryToHistory(history, input_line);
-                AddToThisRunWordsCounter(stats->word_count);
-                break;
-            case CMD_NOT_SUPPORTED:
-                printf(COMMAND_NOT_SUPPORTED_STR);
-                IncrementCommandsCounter();
-                AddToThisRunWordsCounter(stats->word_count);
-                break;
-            default:
-                printf("Unknown Failure\n");
-                break;
-        }
+        HandleUserSelectedCommand(stats, 
+            current_selected_command, history, input_line);
 
         ClearStats(stats);    
     }
