@@ -5,10 +5,10 @@ BIN_DIR=bin
 bin_dir_creator:
 	-mkdir ${BIN_DIR}
 
-ex2.o:
-	${CC} ${CFLAGS} -c ex2.c -o ${BIN_DIR}/ex2.o
+ex2a.o:
+	${CC} ${CFLAGS} -c ex2a.c -o ${BIN_DIR}/ex2a.o
 
-my_shell: ex2.o
+my_shell: ex2a.o
 	-${CC} ${CFLAGS} $(BIN_DIR)/*.o -o ${BIN_DIR}/my_shell
 
 .PHONY: clean all
