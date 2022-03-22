@@ -1,27 +1,12 @@
-exit
--> "exit" -> close (pass)
--> " exit" -> close (pass)
--> "exit " -> close (pass)
--> " exit " -> close (pass)
--> "exit 123" -> treat like "other text" (pass) 
+other text:
+-> [empty line] -> get new line w/o doing nothing 
+-> [only spaces] -> get new line w/o doing nothing 
+
+done
 
 history
--> "history" -> print full history (pass)
--> " history" -> print full history (pass)
--> "history " -> print full history (pass)
--> " history " -> print full history (pass)
--> "history 123" -> treat like "other text" (pass)
-
-other text:
--> [line of text] -> [word count, word=sequence of non space/newline chars] [char count, w/o spaces] (pass)
--> [empty line] -> get new line w/o doing nothing (pass)
--> [only spaces] -> get new line w/o doing nothing (pass)
--> [line length > MAX_LINE_LENGTH] -> treat the first MAX_LINE_LENGTH - 1 chars (fail) : the other chars are getting into the next fgets 
 
 -history behavior-
--> <load history from file> (pass)
--> <load history from file> -> !! no history file !! -> init empty history string (pass)
--> exit -> <append history to file> (pass)
 
 -memory behavior-
 -> no memory leaks and non-released resources 
