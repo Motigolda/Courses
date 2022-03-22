@@ -1,9 +1,11 @@
-other text:
+any text:
 -> [empty line] -> get new line w/o doing nothing 
 -> [only spaces] -> get new line w/o doing nothing 
+-> [legit command] -> run command
+-> [non legit command] -> fail to run
 
 done
-
+-> 
 history
 
 -history behavior-

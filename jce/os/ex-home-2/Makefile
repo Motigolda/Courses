@@ -20,9 +20,9 @@ ex2b: ex2b.o
 .PHONY: clean all
 
 clean:
-	rm ${BIN_DIR}/*.o
+	-rm ${BIN_DIR}/*.o
 
-all: bin_dir_creator my_shell ex2b clean
+all: clean bin_dir_creator my_shell clean ex2b clean
 	@echo "------- End Of Compiliation -------"
 
 

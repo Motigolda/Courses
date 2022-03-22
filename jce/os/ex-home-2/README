@@ -1,39 +1,31 @@
-Ex1 - String Parser
+
+Ex2 - Basic Shell
 Authored by Mordechai Goldstein
 318530136
 
 ==Description==
-This program gets string where its maximum length is 509 (510 - null terminator) chars.
-For each string it returns the word count and the char count of the string:
-- Word Count stands for the number of sequences that contains non-space, newline or null-terminator chars in the string.
-- Char Count stands for the number of characters that are not spaces, newlines and null-terminators in the string.
+This program tends to demonstrate how a shell looks alike.
 In addition, the program saves the history of the strings that entered to it.
-To parse a string, just enter it.
+In order to use it just enter your command. 
+Note that "cd" command is not supported (yet)
 For watching in the history, type "history"
-For exit, type "exit".
+For exit, type "done".
+
+In part b you can also select command from the history and run it.
 
 ==Program Files==
-main.c - the program with all the functions and logic
-Makefile - gnu make file, for easy compiling the code. 
+ex2a.c - part a: basic shell
+ex2b.c - part b: shell with history running
 history.txt - the default history file. created after the first running of the code.
 README - this explanation file :) 
-bin/ - if make file is used, the binary of the code will be created there.
+
 
 ==How to compile?==
-compile:
-    The compilation can be done in two different ways:
-        1.  The recommended one is to run the command "make all", where is the directory that contains the Makefile.
-            This command will create bin directory and compile the main.c into word_counter.
-        2.  Other way is to compile it using gcc:
-            gcc main.c -o main
-            
-run:
-    The compiling method that selected changes the output file path and name:
-        1.  If selected the gnu "make all", run using: 
-            ./bin/word_counter
-        2.  If selected the other way, then run using:
-            ./main
-      
+ex2a:
+    gcc ex2a.c -o ex2a
+ex2b:
+    gcc ex2b.c -o ex2b
+
 ==Input:==
 no input
 

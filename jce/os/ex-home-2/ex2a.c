@@ -1,17 +1,15 @@
 /*
-Ex1 - String Parser
+Ex2 - Basic Shell
 Authored by Mordechai Goldstein
 318530136
 
 ==Description==
-This program gets string where its maximum length is 509 (510 - null terminator) chars.
-For each string it returns the word count and the char count of the string:
-- Word Count stands for the number of sequences that contains non-space, newline or null-terminator chars in the string.
-- Char Count stands for the number of characters that are not spaces, newlines and null-terminators in the string.
+This program tends to demonstrate how a shell looks alike.
 In addition, the program saves the history of the strings that entered to it.
-To parse a string, just enter it.
+In order to use it just enter your command. 
+Note that "cd" command is not supported (yet)
 For watching in the history, type "history"
-For exit, type "exit".
+For exit, type "done".
 */
 
 #include <stdio.h>
@@ -48,11 +46,12 @@ typedef struct _history_t{
 typedef struct _line_stats_t{
     unsigned int word_count;
     unsigned int char_count;
-    char first_word_buffer[MAX_LINE_LENGTH];
+    bool invalid_command;
     char **words_array;
 } line_stats_t;
 
 typedef enum _user_command_t{
+    CMD_INVALID = -2,
     CMD_UNKNOWN = -1,
     CMD_PRINT_STATS = 0,
     CMD_PRINT_HISTORY,
@@ -201,24 +200,27 @@ line_stats_t* GetLineStats(char *line){
     static line_stats_t stats = { 0 };
     char current_word_buffer[MAX_LINE_LENGTH] = { 0 };
     int current_word_ch_index = 0;
-
+    stats.invalid_command = false;
     bool in_word = false;
     int i = 0;
-
+    if(strlen(line) > 0 && (line[0] == ' ' || line[strlen(line) - 2] == ' ')){
+        stats.invalid_command = true;
+        return &stats;
+    }
     while(line[i] != 0){
         if(line[i] != ' ' && !in_word){
-            in_word = true;
-            stats.word_count++;
+            in_word = true;    
         }
         if(line[i] == ' ' || line[i] == '\n'){
             in_word = false;
 
             if (current_word_ch_index > 0){
                 stats.words_array = realloc(stats.words_array, sizeof(char**) * (stats.word_count+1));
-                stats.words_array[stats.word_count-1] = malloc(current_word_ch_index + 1);
-                strcpy(stats.words_array[stats.word_count-1], current_word_buffer); 
+                stats.words_array[stats.word_count] = malloc(current_word_ch_index + 1);
+                strcpy(stats.words_array[stats.word_count], current_word_buffer); 
                 memset(current_word_buffer, 0, MAX_LINE_LENGTH);
                 current_word_ch_index = 0;
+                stats.word_count++;
             }  
         }
         else
@@ -247,7 +249,7 @@ void ClearStats(line_stats_t *stats){
     stats->words_array = NULL;
     stats->char_count = 0;
     stats->word_count = 0;
-    memset(stats->first_word_buffer, 0, MAX_LINE_LENGTH);  
+    stats->invalid_command = false; 
 }
 
 void PrintLineStats(line_stats_t* stats){
@@ -262,9 +264,12 @@ user_command_t GetSelectedCommand(line_stats_t *stats){
     if(stats == NULL)
         return CMD_UNKNOWN;
 
-    if (stats->word_count == 0 && stats->char_count == 0)
+    if (stats->invalid_command)
+        return CMD_INVALID;
+
+    if (stats->words_array == NULL || stats->word_count == 0 || stats->char_count == 0)
         return CMD_EMPTY_LINE;
-    
+
     if (strcmp(stats->words_array[0], "cd") == 0)
         return CMD_NOT_SUPPORTED;
 
@@ -320,6 +325,7 @@ void AddToThisRunWordsCounter(unsigned int num){
 unsigned int GetThisRunWordsCounter(){
     return this_run_words_counter;
 }
+
 void RunUserTerminalProcess(line_stats_t *stats, history_t* history){
     if (stats == NULL)
         return;
@@ -393,6 +399,9 @@ int main(void){
                 printf(COMMAND_NOT_SUPPORTED_STR);
                 IncrementCommandsCounter();
                 AddToThisRunWordsCounter(stats->word_count);
+                break;
+            case CMD_INVALID:
+                printf("Invalid command, check for unnecessary spaces\n");
                 break;
             default:
                 printf("Unknown Failure\n");
