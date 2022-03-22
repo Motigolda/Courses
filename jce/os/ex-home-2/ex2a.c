@@ -20,10 +20,14 @@ For exit, type "exit".
 #include <stdbool.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define HISTORY_FILE_PATH "history.txt"
 
-char *current_dir_text;
+char *current_dir_text = NULL;
+
+unsigned int this_run_commands_counter = 0;
+unsigned int this_run_words_counter = 0;
 
 #define WAIT_FOR_USER_INPUT_STR (current_dir_text != NULL ? current_dir_text : "next command")
 
@@ -281,7 +285,6 @@ void GetLineFromUser(OUT char *line_from_user){
 
     printf("%s>", WAIT_FOR_USER_INPUT_STR);
 
-
     fgets(line_from_user, MAX_LINE_LENGTH, stdin);
 
     line_from_user[MAX_LINE_LENGTH - 1] = 0;
@@ -298,6 +301,25 @@ void FreeHistoryInstanceString(history_t* history){
     history->history_string = NULL;
 }
 
+void IncrementCommandsCounter(){
+    ++this_run_commands_counter;
+}
+
+void DecrementCommandsCounter(){
+    if (this_run_commands_counter != 0)
+        --this_run_commands_counter;
+}
+
+unsigned int GetThisRunCommandCounter(){
+    return this_run_commands_counter;
+}
+void AddToThisRunWordsCounter(unsigned int num){
+    this_run_words_counter += num;
+}
+
+unsigned int GetThisRunWordsCounter(){
+    return this_run_words_counter;
+}
 void RunUserTerminalProcess(line_stats_t *stats, history_t* history){
     if (stats == NULL)
         return;
@@ -324,6 +346,7 @@ void RunUserTerminalProcess(line_stats_t *stats, history_t* history){
         perror("Cant run the command");
     }
 }
+
 // The main loop: get info from user -> do the wanted command -> repeat until exit command.
 int main(void){
     current_dir_text = getcwd(NULL, 0);
@@ -352,22 +375,23 @@ int main(void){
         {
             case CMD_EMPTY_LINE:
                 break;
-            case CMD_PRINT_STATS:
-                PrintLineStats(stats);
-                AppendEntryToHistory(history, input_line);
-                break;
             case CMD_PRINT_HISTORY:
                 PrintHistory(history);
                 AppendEntryToHistory(history, input_line);
+                IncrementCommandsCounter();
                 break;
             case CMD_EXIT:
+                IncrementCommandsCounter();
                 break;
             case CMD_RUN_TERMINAL_PROCESS:
+                IncrementCommandsCounter();
                 RunUserTerminalProcess(stats, history);
                 AppendEntryToHistory(history, input_line);
+                AddToThisRunWordsCounter(stats->word_count);
                 break;
             case CMD_NOT_SUPPORTED:
                 printf(COMMAND_NOT_SUPPORTED_STR);
+                AddToThisRunWordsCounter(stats->word_count);
                 break;
             default:
                 printf("Unknown Failure\n");
@@ -376,6 +400,9 @@ int main(void){
 
         ClearStats(stats);    
     }
+    printf("Num of commands: %u\nTotal number of words in all commands: %u!\n", 
+        GetThisRunCommandCounter(), 
+        GetThisRunWordsCounter());
 
     SaveHistoryToFile(history, HISTORY_FILE_PATH);
 
