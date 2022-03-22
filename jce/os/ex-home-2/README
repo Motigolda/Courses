@@ -26,8 +26,3 @@ ex2a:
 ex2b:
     gcc ex2b.c -o ex2b
 
-==Input:==
-no input
-
-==Output:==
-No output
