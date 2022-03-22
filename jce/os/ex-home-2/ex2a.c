@@ -391,6 +391,7 @@ int main(void){
                 break;
             case CMD_NOT_SUPPORTED:
                 printf(COMMAND_NOT_SUPPORTED_STR);
+                IncrementCommandsCounter();
                 AddToThisRunWordsCounter(stats->word_count);
                 break;
             default:
