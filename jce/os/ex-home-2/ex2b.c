@@ -36,7 +36,9 @@ unsigned int this_run_words_counter = 0;
 #define COMMAND_NOT_SUPPORTED_STR "Command not supported (Yet)\n"
 #define MAX_LINE_LENGTH (512)
 #define IS_NULL(pointer) (pointer == NULL)
-
+#define EXIT_IF_ALLOCATION_FAILED(pointer) \
+    if (IS_NULL(pointer)) \
+        exit(1);
 // Macro that helps to recognize output parameters in function
 #define OUT 
 
@@ -135,7 +137,7 @@ history_t* LoadHistoryFromFile(char* history_file_path){
 
     if (file_size > 0){
         history.history_string = malloc(file_size + 1);
-
+        EXIT_IF_ALLOCATION_FAILED(history.history_string);
         memset(history.history_string, 0, file_size + 1);
 
         ReadTextFile(history_file_path, history.history_string, file_size);
@@ -145,6 +147,7 @@ history_t* LoadHistoryFromFile(char* history_file_path){
         // Thus when new strings loaded into the history object, 
         // strcat() will work as excepted.
         history.history_string = malloc(1);
+        EXIT_IF_ALLOCATION_FAILED(history.history_string);
         *history.history_string = 0;
     }
 
@@ -172,7 +175,7 @@ void AppendEntryToHistory(history_t *history, char *entry){
     size_t new_entry_len = strlen(entry); 
     
     history->history_string = realloc(history->history_string, current_history_string_len + new_entry_len + 1);
-    
+    EXIT_IF_ALLOCATION_FAILED(history->history_string);
     if (current_history_string_len > 0 &&
         history->history_string[current_history_string_len - 1] != '\n')
         strcat(history->history_string, "\n");
@@ -185,6 +188,7 @@ void PrintHistory(history_t *history){
         return;
 
     char *history_copy = malloc(strlen(history->history_string) + 1);
+    EXIT_IF_ALLOCATION_FAILED(history_copy);
     strcpy(history_copy, history->history_string);
 
     char *line_in_history;
@@ -227,7 +231,9 @@ line_stats_t* GetLineStats(char *line){
 
             if (current_word_ch_index > 0){
                 stats.words_array = realloc(stats.words_array, sizeof(char**) * (stats.word_count+1));
+                EXIT_IF_ALLOCATION_FAILED(stats.words_array);
                 stats.words_array[stats.word_count] = malloc(current_word_ch_index + 1);
+                EXIT_IF_ALLOCATION_FAILED(stats.words_array);
                 strcpy(stats.words_array[stats.word_count], current_word_buffer); 
                 memset(current_word_buffer, 0, MAX_LINE_LENGTH);
                 current_word_ch_index = 0;
@@ -385,6 +391,7 @@ void RunUserTerminalProcess(line_stats_t *stats, history_t* history){
 
     if (check_me_after_fork == 0){
         stats->words_array = realloc(stats->words_array, (stats->word_count+1) * sizeof(char**));
+        EXIT_IF_ALLOCATION_FAILED(stats->words_array);
         stats->words_array[stats->word_count] = NULL;
         bool command_run_successfully = execvp(stats->words_array[0], stats->words_array) != -1;
         if(!command_run_successfully){
@@ -409,6 +416,7 @@ void RunUserTerminalProccessFromHistory(line_stats_t *stats, history_t* history)
     unsigned int command_number = 0;
     command_number = atoi(&stats->words_array[0][1]);
     char *history_copy = malloc(strlen(history->history_string) + 1);
+    EXIT_IF_ALLOCATION_FAILED(history_copy);
     strcpy(history_copy, history->history_string);
 
     char *line_in_history;
@@ -422,6 +430,7 @@ void RunUserTerminalProccessFromHistory(line_stats_t *stats, history_t* history)
 
     if (command_number <= history_entry_num){
         char *line_in_history_with_newline = malloc(strlen(line_in_history) + 2);
+        EXIT_IF_ALLOCATION_FAILED(line_in_history_with_newline);
         memset(line_in_history_with_newline, 0, strlen(line_in_history) + 2);
         strcpy(line_in_history_with_newline, line_in_history);
         strcat(line_in_history_with_newline, "\n");

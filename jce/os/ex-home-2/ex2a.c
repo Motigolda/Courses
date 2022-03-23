@@ -37,6 +37,10 @@ unsigned int this_run_words_counter = 0;
 
 // Macro that helps to recognize output parameters in function
 #define OUT 
+// Macro to exit if failed to allocate memory
+#define EXIT_IF_ALLOCATION_FAILED(pointer) \
+    if (pointer == NULL) \
+        exit(1);
 
 typedef struct _history_t{
     // Assumes that history_string is always dynamically allocated
@@ -128,7 +132,7 @@ history_t* LoadHistoryFromFile(char* history_file_path){
 
     if (file_size > 0){
         history.history_string = malloc(file_size + 1);
-
+        EXIT_IF_ALLOCATION_FAILED(history.history_string);
         memset(history.history_string, 0, file_size + 1);
 
         ReadTextFile(history_file_path, history.history_string, file_size);
@@ -165,7 +169,8 @@ void AppendEntryToHistory(history_t *history, char *entry){
     size_t new_entry_len = strlen(entry); 
     
     history->history_string = realloc(history->history_string, current_history_string_len + new_entry_len + 1);
-    
+    EXIT_IF_ALLOCATION_FAILED(history->history_string);
+
     if (current_history_string_len > 0 &&
         history->history_string[current_history_string_len - 1] != '\n')
         strcat(history->history_string, "\n");
@@ -178,6 +183,7 @@ void PrintHistory(history_t *history){
         return;
 
     char *history_copy = malloc(strlen(history->history_string) + 1);
+    EXIT_IF_ALLOCATION_FAILED(history_copy);
     strcpy(history_copy, history->history_string);
 
     char *line_in_history;
@@ -217,6 +223,7 @@ line_stats_t* GetLineStats(char *line){
             if (current_word_ch_index > 0){
                 stats.words_array = realloc(stats.words_array, sizeof(char**) * (stats.word_count+1));
                 stats.words_array[stats.word_count] = malloc(current_word_ch_index + 1);
+                EXIT_IF_ALLOCATION_FAILED(stats.words_array[stats.word_count]);
                 strcpy(stats.words_array[stats.word_count], current_word_buffer); 
                 memset(current_word_buffer, 0, MAX_LINE_LENGTH);
                 current_word_ch_index = 0;
@@ -334,6 +341,7 @@ void RunUserTerminalProcess(line_stats_t *stats, history_t* history){
 
     if (check_me_after_fork == 0){
         stats->words_array = realloc(stats->words_array, (stats->word_count+1) * sizeof(char**));
+        EXIT_IF_ALLOCATION_FAILED(stats->words_array);
         stats->words_array[stats->word_count] = NULL;
         bool command_run_successfully = execvp(stats->words_array[0], stats->words_array) != -1;
         if(!command_run_successfully){

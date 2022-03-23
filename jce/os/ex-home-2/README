@@ -19,7 +19,6 @@ ex2b.c - part b: shell with history running
 history.txt - the default history file. created after the first running of the code.
 README - this explanation file :) 
 
-
 ==How to compile?==
 ex2a:
     gcc ex2a.c -o ex2a
