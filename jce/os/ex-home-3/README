@@ -1,0 +1,25 @@
+
+Ex3 - Basic Shell Extended
+Authored by Mordechai Goldstein
+318530136
+
+==Description==
+This program tends to demonstrate how a shell looks alike.
+Functionallity:
+- regular command running 
+- history saving and reusing
+- output piping between processes
+- command sending to background
+- command keep running after terminal quitting
+For exit, type "done".
+
+==Program Files==
+ex3.c - shell
+history.txt - the default history file. created after the first running of the code.
+README - this explanation file :) 
+
+==How to compile?==
+ex3.c:
+    gcc ex3.c -o ex3
+
+
