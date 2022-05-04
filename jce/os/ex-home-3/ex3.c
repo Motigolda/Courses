@@ -1,15 +1,16 @@
 /*
-Ex2 - Basic Shell & Old Command Running
+Ex3 - Basic Shell, With Pipes, Nohups And Background running support
 Authored by Mordechai Goldstein
 318530136
 
 ==Description==
 This program tends to demonstrate how a shell looks alike.
-In this part, you can also select command from history and run it, using !<number from history>
-In addition, the program saves the history of the strings that entered to it.
-In order to use it just enter your command. 
-Note that "cd" command is not supported (yet)
-For watching in the history, type "history"
+Functionallity:
+- regular command running 
+- history saving and reusing
+- output piping between processes
+- command sending to background
+- command keep running after terminal quitting
 For exit, type "done".
 */
 
