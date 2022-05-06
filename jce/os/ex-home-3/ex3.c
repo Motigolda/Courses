@@ -21,6 +21,7 @@ For exit, type "done".
 #include <sys/wait.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdint.h>
 
 #define HISTORY_FILE_PATH "history.txt"
 
@@ -40,6 +41,9 @@ unsigned int this_run_words_counter = 0;
 #define EXIT_IF_ALLOCATION_FAILED(pointer) \
     if (IS_NULL(pointer)) \
         exit(1);
+#define CHAR_PIPE   '|'
+#define CHAR_BG     '&'
+
 // Macro that helps to recognize output parameters in function
 #define OUT 
 
@@ -53,6 +57,8 @@ typedef struct _line_stats_t{
     unsigned int char_count;
     bool invalid_command;
     char **words_array;
+    uint32_t pipe_char_detected[MAX_LINE_LENGTH];
+    uint32_t bg_char_detected[MAX_LINE_LENGTH];
 } line_stats_t;
 
 typedef enum _user_command_t{
@@ -211,47 +217,94 @@ line_stats_t* GetLineStats(char *line){
 
     static line_stats_t stats = { 0 };
     char current_word_buffer[MAX_LINE_LENGTH] = { 0 };
-    int current_word_ch_index = 0;
+    uint32_t i = 0;
     stats.invalid_command = false;
-    bool in_word = false;
-    int i = 0;
-    if(strlen(line) > 0 && (line[0] == ' ' || line[strlen(line) - 2] == ' ')){
+    
+    // Validate the start
+    bool empty_line = strlen(line) == 0 || line[0] == '\n';
+    
+    if (empty_line)
+        return &stats;
+
+    bool starts_with_invalid_char = 
+        line[0] == '|' || line[0] == '&' || line[0] == ' ';
+    bool ends_with_invalid_char = 
+        line[strlen(line) - 2] == ' ';
+
+    if (starts_with_invalid_char || ends_with_invalid_char){
         stats.invalid_command = true;
         return &stats;
     }
-    if (line[0] == '\n')
-        return &stats;
 
-    while(line[i] != 0){
-        if(line[i] != ' ' && !in_word){
-            in_word = true;
-            
+    // Iterate through the input line
+    bool in_word = true;
+    uint32_t word_index = 0;
+    uint32_t buffer_index = 0;
+    uint32_t pipe_index = 0;
+    uint32_t bg_index = 0;
+    while(i < strlen(line)){
+        if (line[i] == ' '){
+            if(!in_word){
+                stats.invalid_command = true;
+                return &stats;
+            }
+            else
+                in_word = false;
         }
-        if(line[i] == ' ' || line[i] == '\n' || line[i] == 0){
-            in_word = false;
 
-            if (current_word_ch_index > 0){
+        if (line[i] == '|' || line[i] == '&' || line[i] == ' ' || line[i] == '\n'){
+            if(buffer_index > 0){
                 stats.words_array = realloc(stats.words_array, sizeof(char**) * (stats.word_count+1));
                 EXIT_IF_ALLOCATION_FAILED(stats.words_array);
-                stats.words_array[stats.word_count] = malloc(current_word_ch_index + 1);
+                stats.words_array[stats.word_count] = malloc(buffer_index + 1);
                 EXIT_IF_ALLOCATION_FAILED(stats.words_array);
                 strcpy(stats.words_array[stats.word_count], current_word_buffer); 
                 memset(current_word_buffer, 0, MAX_LINE_LENGTH);
-                current_word_ch_index = 0;
-                stats.word_count++;
-            }  
-        }
-        else
-            stats.char_count++;
+                buffer_index = 0;
+                ++stats.word_count;
+            }
 
-        if(line[i] != ' ' && line[i] != '\n'){
-            current_word_buffer[current_word_ch_index] = line[i];
-            current_word_ch_index++;
+            if(line[i] == CHAR_PIPE || line[i] == CHAR_BG){
+                stats.words_array = realloc(stats.words_array, sizeof(char**) * (stats.word_count+1));
+                EXIT_IF_ALLOCATION_FAILED(stats.words_array);
+                stats.words_array[stats.word_count] = malloc(2);
+                EXIT_IF_ALLOCATION_FAILED(stats.words_array);
+                stats.words_array[stats.word_count][0] = line[i];
+                stats.words_array[stats.word_count][1] = 0;
+                ++stats.word_count;
+                in_word = true;
+                if(line[i] == CHAR_PIPE){
+                    stats.pipe_char_detected[pipe_index] = stats.word_count-1;
+                    ++pipe_index;
+                }
+                if(line[i] == CHAR_BG){
+                    stats.bg_char_detected[bg_index] = stats.word_count-1;
+                    ++bg_index;
+                }
+                if(pipe_index > 1 && 
+                stats.pipe_char_detected[pipe_index] 
+                == stats.pipe_char_detected[pipe_index-1]+1){
+                    stats.invalid_command = true;
+                    return &stats;
+                }
+                if(bg_index > 1 &&
+                stats.bg_char_detected[bg_index]
+                == stats.bg_char_detected[bg_index-1]+1){
+                    stats.invalid_command = true;
+                    return &stats;
+                }
+            }
         }
-
-        i++;
+        else{
+            in_word = true;
+            current_word_buffer[buffer_index] = line[i];
+            ++buffer_index;
+        }
+        if(line[i] != ' ' && line[i] != '\n')
+            ++stats.char_count;
+        ++i;
     }
-    
+
     return &stats;
 }
 
@@ -267,7 +320,9 @@ void ClearStats(line_stats_t *stats){
     stats->words_array = NULL;
     stats->char_count = 0;
     stats->word_count = 0;
-    stats->invalid_command = false; 
+    stats->invalid_command = false;
+    memset(stats->pipe_char_detected, 0, MAX_LINE_LENGTH);
+    memset(stats->bg_char_detected, 0, MAX_LINE_LENGTH);
 }
 
 void PrintLineStats(line_stats_t* stats){
