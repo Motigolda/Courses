@@ -57,8 +57,8 @@ term_with_solve_for_and_result_t;
 
 #pragma region Macros
 
-#define INPUT_LINE_MAX_LENGTH(512)
-#define MAX_TERMS(256)
+#define INPUT_LINE_MAX_LENGTH (512)
+#define MAX_TERMS (256)
 
 #define STR_WAIT_TO_USER_INPUT "P(x), x0 / done: "
 #define STR_INVALID_INPUT "Invalid Input!"
@@ -75,8 +75,7 @@ term_with_solve_for_and_result_t;
 #define IS_CIRCUMFLEX(ch)((ch) == '^')
 #define IS_X(ch)((ch) == 'x' || (ch) == 'X')
 
-#define SET_INVALID_AND_BREAK(task) task -> selected_option = OPT_UNKNOWN;
-break;
+#define SET_INVALID_AND_BREAK(task) task -> selected_option = OPT_UNKNOWN;break;
 // use these to describe variable as in/out
 #define IN
 #define OUT
@@ -218,7 +217,10 @@ task_t * ParseUserInput(char * line_from_user) {
                 ++buff_ind;
             } else if (IS_X(current_char)) {
                 if (current_buffer == BUFF_COEF) {
-                    current_term.coefficient = atoi(buffer);
+                    if(strlen(buffer) == 0)
+                        current_term.coefficient = 1;
+                    else
+                        current_term.coefficient = atoi(buffer);
                     memset(buffer, 0, INPUT_LINE_MAX_LENGTH);
                     buff_ind = 0;
                     current_buffer = BUFF_EXP;

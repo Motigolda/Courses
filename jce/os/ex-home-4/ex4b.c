@@ -67,8 +67,8 @@ static bool in_main_process = true;
 
 #pragma region Macros
 
-#define INPUT_LINE_MAX_LENGTH(512)
-#define MAX_TERMS(256)
+#define INPUT_LINE_MAX_LENGTH (512)
+#define MAX_TERMS (256)
 #define SHARED_MEMORY_SIZE sizeof(int64_t)
 
 #define STR_MEM_KEY "/tmp"
@@ -87,8 +87,7 @@ static bool in_main_process = true;
 #define IS_CIRCUMFLEX(ch)((ch) == '^')
 #define IS_X(ch)((ch) == 'x' || (ch) == 'X')
 
-#define SET_INVALID_AND_BREAK(task) task -> selected_option = OPT_UNKNOWN;
-break;
+#define SET_INVALID_AND_BREAK(task) task -> selected_option = OPT_UNKNOWN;break;
 // use these to describe variable as in/out
 #define IN
 #define OUT
@@ -231,7 +230,10 @@ task_t * ParseUserInput(char * line_from_user) {
                 ++buff_ind;
             } else if (IS_X(current_char)) {
                 if (current_buffer == BUFF_COEF) {
-                    current_term.coefficient = atoi(buffer);
+                    if(strlen(buffer) == 0)
+                        current_term.coefficient = 1;
+                    else
+                        current_term.coefficient = atoi(buffer);
                     memset(buffer, 0, INPUT_LINE_MAX_LENGTH);
                     buff_ind = 0;
                     current_buffer = BUFF_EXP;
@@ -317,7 +319,7 @@ int64_t CalculateTerm(term_t * term, int32_t solve_for) {
 
 void CalculatePolynomialAndPrint(polynomial_t * polynomial, int32_t solve_for_x) {
     if (polynomial == NULL)
-        return 0;
+        return;
 
     int64_t result = CalculatePolynomial(polynomial, solve_for_x);
 
