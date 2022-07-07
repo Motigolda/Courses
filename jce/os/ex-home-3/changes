@@ -1,0 +1,5 @@
+ADD:
+RunPipeProcesses(stats)
+CHANGE:
+Stats: include '|' array and '&' array where the array saves the indexes of words that detected '|','&'
+

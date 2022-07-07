@@ -1,0 +1,21 @@
+any text:
+-> [empty line] -> get new line w/o doing nothing 
+-> [only spaces] -> get new line w/o doing nothing 
+-> [legit command] -> run command
+-> [non legit command] -> fail to run
+
+done
+-> 
+history
+
+-history behavior-
+
+-memory behavior-
+-> no memory leaks and non-released resources 
+
+nohup sleep 15 | ls -l |grep a
+ls &
+ls -l &| grep 1
+history | grep 2000
+!2419 | grep 1
+command |&| command
