@@ -5,6 +5,11 @@
 #include <string.h>
 #include <pthread.h>
 #include <math.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #pragma region Typedefs
 typedef enum _option_selector_t{
@@ -36,10 +41,11 @@ typedef enum _buffers_in_parse_t{
     BUFF_SOLVE_FOR
 } buffers_in_parse_t;
 
-typedef struct _term_with_solve_for_and_result_t{
-    term_t *term;
-    int32_t solve_for;
-} term_with_solve_for_and_result_t;
+#pragma endregion
+
+#pragma region Globals 
+
+static bool in_main_process = true;
 
 #pragma endregion
 
@@ -47,7 +53,9 @@ typedef struct _term_with_solve_for_and_result_t{
 
 #define INPUT_LINE_MAX_LENGTH (512)
 #define MAX_TERMS (256)
+#define SHARED_MEMORY_SIZE sizeof(int64_t)
 
+#define STR_MEM_KEY "/tmp"
 #define STR_WAIT_TO_USER_INPUT "P(x), x0 / done: "
 #define STR_INVALID_INPUT "Invalid Input!"
 #define STR_UNKNOWN_INPUT "Unknown Input!"
@@ -86,14 +94,15 @@ task_t *ParseUserInput(char *line_from_user);
 
 int64_t CalculatePolynomial(polynomial_t *polynomial, int32_t solve_for_x);
 
+int64_t CalculateTerm(term_t *term, int32_t solve_for);
+
+void CalculatePolynomialAndPrint(polynomial_t *polynomial, int32_t solve_for_x);
+
 #pragma endregion 
 // Heres the functions who changes with the calucation method
 #pragma region Calculation Functions Headers
-int64_t CalculatePolynomialUsingThreads(polynomial_t *polynomial, int32_t solve_for);
 
-int64_t CalculateTerm(term_t *term, int32_t solve_for);
-
-void *CalculateTermUsingThread(void *term_with_solve_for);
+int64_t CalculatePolynomialUsingProcessesAndSharedMemory(polynomial_t *polynomial, int32_t solve_for);
 
 #pragma endregion
 
@@ -283,49 +292,7 @@ int64_t CalculatePolynomial(polynomial_t *polynomial, int32_t solve_for){
     if (polynomial == NULL)
         return 0;
     
-    return CalculatePolynomialUsingThreads(polynomial, solve_for);
-}
-
-#pragma endregion 
-
-#pragma region Calculation Functions Implementations
-int64_t CalculatePolynomialUsingThreads(polynomial_t *polynomial, int32_t solve_for){
-
-    int64_t result = 0;
-    
-    term_with_solve_for_and_result_t terms_for_thread[MAX_TERMS] = { 0 };
-    pthread_t threads[MAX_TERMS] = { 0 };
-    uint32_t current_term_pointer = 0;
-    int32_t err = 0;
-
-    while(polynomial->terms[current_term_pointer] != NULL){
-        terms_for_thread[current_term_pointer].term = polynomial->terms[current_term_pointer];
-        terms_for_thread[current_term_pointer].solve_for = solve_for; 
-        err = pthread_create(
-            &threads[current_term_pointer],
-            NULL,
-            CalculateTermUsingThread,
-            &terms_for_thread[current_term_pointer]
-        );
-
-        if (err != 0){
-            printf("Failed to create a new thread.\n");
-            exit(1);
-        }
-        
-        ++current_term_pointer;
-    }
-    
-    uint32_t num_of_threads = current_term_pointer;
-    int64_t *current_result = NULL;
-
-    for (int i = 0; i < num_of_threads; i++){
-        pthread_join(threads[i], (void**)&current_result);
-        result += *current_result;
-        free(current_result);
-    }
-
-    return result;
+    return CalculatePolynomialUsingProcessesAndSharedMemory(polynomial, solve_for);
 }
 
 int64_t CalculateTerm(term_t *term, int32_t solve_for){
@@ -339,19 +306,79 @@ int64_t CalculateTerm(term_t *term, int32_t solve_for){
     return result;
 }
 
-void *CalculateTermUsingThread(void *term_with_solve_for){
-    if (term_with_solve_for == NULL)
-        return NULL;
+void CalculatePolynomialAndPrint(polynomial_t *polynomial, int32_t solve_for_x){
+    if(polynomial == NULL)
+        return 0;
 
-    term_with_solve_for_and_result_t *args = (term_with_solve_for_and_result_t*)term_with_solve_for;
+    int64_t result = CalculatePolynomial(polynomial, solve_for_x);
+
+    if (in_main_process)
+        printf(STR_VALUE_OF_CALC_FORMAT, solve_for_x, result);
+}
+#pragma endregion 
+
+#pragma region Calculation Functions Implementations
+
+int64_t CalculatePolynomialUsingProcessesAndSharedMemory(polynomial_t *polynomial, int32_t solve_for){
+    if(polynomial == NULL)
+        return 0;
     
-    term_t *term = args->term;
-    int32_t solve_for = args->solve_for;
+    key_t key;
+    int err = 0;
+    err = key = ftok(STR_MEM_KEY, 'y');
 
-    int64_t *result = malloc(sizeof(int64_t));
+    if(err == -1){
+        perror("ftok failed");
+        exit(EXIT_FAILURE);
+    }
 
-    *result = CalculateTerm(term, solve_for);
-    pthread_exit((void*)result);
+    int shm_id;
+    err = shm_id = shmget(
+        key, SHARED_MEMORY_SIZE, IPC_CREAT | IPC_EXCL | 0600
+    );
+
+    if (err == -1){
+        perror("shmget failed");
+        exit(EXIT_FAILURE);
+    }
+
+    int64_t *shm_ptr; 
+    shm_ptr = (int64_t*)shmat(shm_id, NULL, 0);
+
+    term_t *current_term = polynomial->terms[0];
+    uint32_t term_counter = 0;
+    pid_t current_pid;
+    while(current_term != NULL){
+        current_pid = fork();
+        if (current_pid < 0){
+            perror("fork() failed");
+            exit(EXIT_FAILURE);
+        }
+        else if(current_pid == 0){
+            *shm_ptr += CalculateTerm(current_term, solve_for);
+            current_term = 0;
+            in_main_process = false;         
+        }
+        else{
+            ++term_counter;
+            current_term = polynomial->terms[term_counter];
+        }
+    }
+
+    for(int i = 0; i < term_counter; i++)
+        wait(NULL);
+    int64_t result = *shm_ptr;
+
+    if(current_pid != 0){
+        shmdt(shm_ptr);
+        err = shmctl(shm_id, IPC_RMID, NULL);
+        if (err == -1){
+            perror("shmctl failed");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    return result;
 }
 
 #pragma endregion
@@ -361,7 +388,7 @@ void MainLoop(){
     char line_buffer[INPUT_LINE_MAX_LENGTH] = { 0 };
     bool keep_running = true;
     task_t *task = NULL;
-    while(keep_running){
+    while(keep_running && in_main_process){
         memset(line_buffer, 0, INPUT_LINE_MAX_LENGTH);
 
         GetLineFromUser(line_buffer);
@@ -386,9 +413,7 @@ void HandleTask(task_t *task){
     switch (task->selected_option)
     {
     case OPT_CALC_POLYNOMIAL:
-        printf(STR_VALUE_OF_CALC_FORMAT, 
-            task->solve_for,
-            CalculatePolynomial(&task->polynomial, task->solve_for));
+        CalculatePolynomialAndPrint(&task->polynomial, task->solve_for);
         break;
 
     case OPT_EMPTY_LINE:
