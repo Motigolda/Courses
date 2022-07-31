@@ -4,6 +4,7 @@
 #define MEMORY_SIZE (200)
 #define EMPTY_MEMORY_CELL_VALUE '0'
 #define RETURN_VALUE_IF_CANT_LOAD (0)
+#define EMPTY_INDEX (-1)
 
 extern char main_memory[MEMORY_SIZE];
 
@@ -50,6 +51,13 @@ class sim_mem{
         // destruct functions
         void close_open_executables();
         void release_dynamicly_allocated_memory();
+        void clean_swap_file();
+        // page functions 
+        int get_physical_address(int logical_address);
+        // load functions
+        
+        // store functions
+        bool is_logical_address_text_page(int logical_address);
 };
 
 #endif
