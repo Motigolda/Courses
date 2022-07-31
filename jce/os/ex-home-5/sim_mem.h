@@ -13,7 +13,7 @@ typedef struct page_descriptor
     int swap_index; // where the page is located in the swap file.
 } page_descriptor;
 
-class mem_sim{
+class sim_mem{
     int swapfile_fd; //swap file fd
     int program_fd[2]; //executable file fd
     int text_size;
@@ -25,16 +25,22 @@ class mem_sim{
     int num_of_proc;
 
     page_descriptor **page_table; //pointer to page table
-    
+
     public:
-        mem_sim(char exe_file_name1[], char swap_file_name2[], int text_size,
-            int data_size, int bss_size, int heap_stack_size,
-            int num_of_pages, int page_size, int num_of_process);
-        ~mem_sim();
+        sim_mem(const char exe_file_name1[], const char exe_file_name2[], const char swap_file_name[], int
+            text_size, int data_size, int bss_size, int heap_stack_size, int num_of_pages, int
+            page_size, int num_of_process);
+
+        ~sim_mem();
+
         char load(int process_id, int address);
+
         void store(int process_id, int address, char value);
+
         void print_memory();
+
         void print_swap ();
+
         void print_page_table();
 };
 
