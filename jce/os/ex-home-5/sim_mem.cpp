@@ -8,8 +8,6 @@ using namespace std;
 
 void print_error_and_exit(const char *error_message);
 
-#define EMPTY_MEMORY_CELL_VALUE '0'
-
 sim_mem::sim_mem(const char exe_file_name1[], const char exe_file_name2[], const char swap_file_name[], int
     text_size, int data_size, int bss_size, int heap_stack_size, int num_of_pages, int
     page_size, int num_of_process){
@@ -20,12 +18,15 @@ sim_mem::sim_mem(const char exe_file_name1[], const char exe_file_name2[], const
 sim_mem::~sim_mem(){
 
 }
+
 char sim_mem::load(int process_id, int address){
     return 0;
 }
+
 void sim_mem::store(int process_id, int address, char value){
 
 }
+
 void sim_mem::print_memory() {
     int i;
     printf("\nPhysical memory\n");
@@ -35,6 +36,7 @@ void sim_mem::print_memory() {
             printf("\n");
     }
 }
+
 void sim_mem::print_swap() {
     char* str = (char*)malloc(this->page_size *sizeof(char));
     int i;
@@ -47,6 +49,7 @@ void sim_mem::print_swap() {
         printf("\n");
     }
 }
+
 void sim_mem::print_page_table() {
     int i;
     for (int j = 0; j < num_of_proc; j++) {
@@ -62,6 +65,7 @@ void sim_mem::print_page_table() {
         }
     }
 }
+
 void print_error_and_exit(const char *error_message){
     cout << "Error: " << error_message << endl;
     exit(EXIT_FAILURE);
