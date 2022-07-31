@@ -1,12 +1,20 @@
 #include <iostream>
 #include <cstdlib>
 #include <unistd.h>
+
 #include "sim_mem.h"
+
+using namespace std;
+
+void print_error_and_exit(const char *error_message);
+
+#define EMPTY_MEMORY_CELL_VALUE '0'
 
 sim_mem::sim_mem(const char exe_file_name1[], const char exe_file_name2[], const char swap_file_name[], int
     text_size, int data_size, int bss_size, int heap_stack_size, int num_of_pages, int
     page_size, int num_of_process){
-
+    int i;
+    
 }
     
 sim_mem::~sim_mem(){
@@ -21,9 +29,10 @@ void sim_mem::store(int process_id, int address, char value){
 void sim_mem::print_memory() {
     int i;
     printf("\nPhysical memory\n");
-    for(i = 0; i < MEMORY_SIZE / 10; i++) {
+    for(i = 0; i < MEMORY_SIZE; i++) {
         printf("[%c]", main_memory[i]);
-        if (i % 10) printf("\n");
+        if ((i+1) % 10 == 0) 
+            printf("\n");
     }
 }
 void sim_mem::print_swap() {
@@ -52,4 +61,8 @@ void sim_mem::print_page_table() {
             page_table[j][i].swap_index);
         }
     }
+}
+void print_error_and_exit(const char *error_message){
+    cout << "Error: " << error_message << endl;
+    exit(EXIT_FAILURE);
 }
