@@ -37,17 +37,16 @@ class sim_mem{
         ~sim_mem();
         char load(int process_id, int address);
         void store(int process_id, int address, char value);
-        void print_memory();
-        void print_swap ();
-        void print_page_table();
+        void print_memory(); // done
+        void print_swap (); // done
+        void print_page_table(); // done
     private:
         // init functions
-        void exit_if_executable_not_exists();
-        void init_private_members();
-        void open_executables();
+        void exit_if_executable_not_exists(const char file_path[]);
+        void open_executable(const char executable_path[]);
         void init_virtual_memory();
-        void init_page_table();
-        void init_swap_file();
+        void init_page_table(unsigned int num_of_processes);
+        void init_swap_file(const char swap_file_path[], int page_size, int num_of_pages, int text_pages);
         // destruct functions
         void close_open_executables();
         void release_dynamicly_allocated_memory();
