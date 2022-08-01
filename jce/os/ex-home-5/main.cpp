@@ -9,7 +9,7 @@ int main()
 {
     char val;
 
-    sim_mem mem_sm("data/exec_file_1", "", "swap_file" ,25, 50, 25,25, 25, 5,1);
+    sim_mem mem_sm("data/exec_file_1", "", "data/swap_file" ,25, 50, 25,25, 25, 5,1);
 
     mem_sm.store(1, 98,'X');
 

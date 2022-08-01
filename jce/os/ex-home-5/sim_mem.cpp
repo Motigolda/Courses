@@ -61,7 +61,7 @@ sim_mem::~sim_mem(){
     this->close_open_executables();
 
     close(this->swapfile_fd);
-    
+
     this->release_dynamicly_allocated_memory();
 
 }
@@ -171,7 +171,7 @@ void sim_mem::init_page_table(unsigned int num_of_processes){
 }
 
 void sim_mem::init_swap_file(const char *swap_file_path, int page_size, int num_of_pages, int text_pages){
-    this->swapfile_fd = open(swap_file_path, 1); // find the right flags
+    this->swapfile_fd = open(swap_file_path, O_CREAT | O_TRUNC); // find the right flags
 
     int i = 0;
     for (i = 0; i < page_size * (num_of_pages - text_pages); i++)
