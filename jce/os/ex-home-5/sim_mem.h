@@ -1,13 +1,17 @@
 #ifndef SIM_MEM_H
 #define SIM_MEM_H
 
-#define MEMORY_SIZE (200)
+#include <queue>
+
+using namespace std;
+
+#define MEMORY_SIZE (20)
 #define EMPTY_MEMORY_CELL_VALUE '0'
 #define RETURN_VALUE_IF_CANT_LOAD (0)
 #define EMPTY_INDEX (-1)
 
 extern char main_memory[MEMORY_SIZE];
-
+typedef int frame_index;
 typedef struct page_descriptor
 {
     int V; // valid
@@ -27,7 +31,9 @@ class sim_mem{
     int num_of_pages;
     int page_size;
     int num_of_proc;
-
+    bool *frame_list;
+    bool *swap_index_list;
+    queue<frame_index> pages_in_memory;
     page_descriptor **page_table; //pointer to page table
 
     public:
@@ -47,17 +53,22 @@ class sim_mem{
         void init_virtual_memory();
         void init_page_table(unsigned int num_of_processes);
         void init_swap_file(const char swap_file_path[], int page_size, int num_of_pages, int text_pages);
+        void init_frame_list();
+        void init_swap_index_list();
         // destruct functions
         void close_open_executables();
         void release_dynamicly_allocated_memory();
         // page functions 
-        int get_physical_address(int logical_address);
-        int get_page_physical_address(page_descriptor *page);
-        int bring_page_to_memory(page_descriptor *page);
+        int get_physical_address(int process_id, int logical_address);
+        page_descriptor *get_page_by_logical_address(int process_id, int logical_address);
+        int get_page_physical_address(page_descriptor *page, int process_id, int page_index);
+        int bring_page_from_file(page_descriptor *page, int process_num, int page_index);
         int bring_page_from_swap(page_descriptor *page);
-        int move_page_to_swap(page_descriptor *page);
+        int move_oldest_page_to_swap();
         int get_free_frame_index();
-
+        int get_offest_in_page(int logical_address);
+        bool is_memory_full();
+        int get_free_index_in_swap();
         // load functions
         
         // store functions

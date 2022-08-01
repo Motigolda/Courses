@@ -1,25 +1,19 @@
 #include <iostream>
 #include "sim_mem.h"
-
 using namespace std;
-
-char main_memory[MEMORY_SIZE];
-
+//char main_memory[MEMORY_SIZE];
 int main()
 {
-    char val;
 
-    sim_mem mem_sm("data/exec_file_1", "", "data/swap_file" ,25, 50, 25,25, 25, 5,1);
+    //test 1 - check only errors. 
+    cout<<"=================== test 1 - 15 points ==================="<<endl;
+    sim_mem mem_sm1((char*)"test/tester/file1", (char*)"" , (char*)"swap_file" ,5, 10, 5, 5, 5, 5,1);
 
-    mem_sm.store(1, 98,'X');
+    mem_sm1.store(1, 30, 'X'); //error - out of range
+    mem_sm1.store(1, 4, 'X');  //error - writing to text
+    mem_sm1.load (1, 22);      //error - loading heap/stack at the first time
 
-    val = mem_sm.load(1, 98);
-
-    cout << "val=" << val << endl;
-
-    mem_sm.print_memory();
-
-    mem_sm.print_swap();
-
-    return 0;
+    mem_sm1.print_memory();
+	mem_sm1.print_swap();
+	mem_sm1.print_page_table();
 }
