@@ -63,7 +63,6 @@ sim_mem::~sim_mem(){
     close(this->swapfile_fd);
 
     this->release_dynamicly_allocated_memory();
-
 }
 
 char sim_mem::load(int process_id, int address){
@@ -173,11 +172,23 @@ void sim_mem::init_page_table(unsigned int num_of_processes){
 }
 
 void sim_mem::init_swap_file(const char *swap_file_path, int page_size, int num_of_pages, int text_pages){
-    this->swapfile_fd = open(swap_file_path, O_CREAT | O_TRUNC); // find the right flags
-
+    this->swapfile_fd = open(swap_file_path, 
+        O_RDWR | O_CREAT | O_TRUNC, 
+        S_IRUSR | S_IWUSR); 
+    if(this->swapfile_fd == -1){
+        perror("cant open swap file");
+        exit(EXIT_FAILURE);
+    }
     int i = 0;
-    for (i = 0; i < page_size * (num_of_pages - text_pages); i++)
-        write(this->swapfile_fd, "0", 1); 
+    size_t bytes_wrote = 0;
+    for (i = 0; i < page_size * (num_of_pages - text_pages); i++){
+        bytes_wrote = write(this->swapfile_fd, "0", 1); 
+        if(bytes_wrote == 0){
+            perror("cant write to swap file");
+            exit(EXIT_FAILURE);
+        }
+    }
+        
 }
 
 void sim_mem::close_open_executables(){
