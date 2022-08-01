@@ -115,7 +115,7 @@ void sim_mem::store(int process_id, int address, char value){
     if (page == NULL) 
         return;
     
-    if (page->V == 1 && page->P == 0){
+    if (page->P == 0){
         cout << "Cant store data into text page!" << endl;
         return;
     }
@@ -216,11 +216,15 @@ void sim_mem::init_page_table(unsigned int num_of_processes){
     for(i = 0; i < this->num_of_proc; i++)
         this->page_table[i] = (page_descriptor*)malloc(sizeof(page_descriptor)*this->num_of_pages);
     
+    int first_text_pages_number = text_size / page_size;
     for(i = 0; i < this->num_of_proc; i++){
         int j = 0;
         for (j = 0; j < this->num_of_pages; j++){
+            if (j < first_text_pages_number)
+                this->page_table[i][j].P = 0;
+            else
+                this->page_table[i][j].P = 1;
             this->page_table[i][j].D = 0;
-            this->page_table[i][j].P = 1;
             this->page_table[i][j].V = 0;
             this->page_table[i][j].frame = -1;
             this->page_table[i][j].swap_index = -1;
@@ -330,7 +334,6 @@ int sim_mem::bring_page_from_file(page_descriptor *page, int process_num, int pa
     int page_offset_in_file = page_index * page_size; 
     int fd = GET_FD_OF_PROCESS(process_num, this->program_fd);
     lseek(fd, page_offset_in_file, SEEK_SET);
-
     char *buffer = (char*)malloc(sizeof(char)*page_size);
     if(read(fd, buffer, page_size)==0)
         print_syscall_error_and_exit("cant read page from the file");
@@ -385,23 +388,27 @@ int sim_mem::bring_page_from_swap(page_descriptor *page){
 
     this->frame_list[free_frame] = true;
     this->pages_in_memory.push(free_frame);
-    page->D = 0;
     page->V = 1;
     page->frame = free_frame;
     return physical_page_address;
 }
 
 void sim_mem::init_frame_list(){
-    this->frame_list = (bool*)malloc(sizeof(bool)*this->num_of_pages);
+    this->frame_list = (bool*)malloc((sizeof(bool)*this->num_of_pages));
+    int i = 0;
+    int d;
+    
+    for (i = 0; i < this->num_of_pages; i++)
+        this->frame_list[i] = false;
 }
 
 int sim_mem::get_free_frame_index(){
     int i = 0;
 
-    if ((int)pages_in_memory.size() == this->num_of_pages)
+    if (!pages_in_memory.empty() && (int)pages_in_memory.size() == this->num_of_pages)
         return this->move_oldest_page_to_swap();
     
-    for(i = 0; i < this->page_size; i++)
+    for(i = 0; i < this->num_of_pages; i++)
         if (this->frame_list[i] == false)
             return i;
 
