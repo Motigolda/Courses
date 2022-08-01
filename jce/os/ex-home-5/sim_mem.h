@@ -52,11 +52,12 @@ class sim_mem{
         void release_dynamicly_allocated_memory();
         // page functions 
         int get_physical_address(int logical_address);
-        int get_page_physical_address(int process_num, int page_num);
-        int bring_page_to_memory(int process, int page_num);
-        int move_page_to_swap(int frame);
+        int get_page_physical_address(page_descriptor *page);
+        int bring_page_to_memory(page_descriptor *page);
+        int bring_page_from_swap(page_descriptor *page);
+        int move_page_to_swap(page_descriptor *page);
         int get_free_frame_index();
-        
+
         // load functions
         
         // store functions

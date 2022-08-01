@@ -143,11 +143,13 @@ void sim_mem::open_executable(const char executable_path[]){
         exit(EXIT_FAILURE);
     }
 }
+
 void sim_mem::init_virtual_memory(){
     int i = 0;
     for (i = 0; i < MEMORY_SIZE; i++)
         main_memory[i] = EMPTY_MEMORY_CELL_VALUE;
 }
+
 void sim_mem::init_page_table(unsigned int num_of_processes){
     if (num_of_processes < 1 || num_of_processes > 3)
         exit(EXIT_FAILURE);
@@ -183,6 +185,7 @@ void sim_mem::close_open_executables(){
     for (i = 0; i < this->num_of_proc; i++)
         close(this->program_fd[i]);
 }
+
 void sim_mem::release_dynamicly_allocated_memory(){
     int i = 0;
     for(i = 0; i < this->num_of_proc; i++){
