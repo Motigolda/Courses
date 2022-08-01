@@ -8,10 +8,17 @@
 
 using namespace std;
 
+typedef enum _error_codes_t{
+    ERR_UNKNOWN = 0,
+    ERR_ILLEGAL_LOGIC_ADDRESS = 1,
+    ERR_ILLEGAL_PHYSICAL_ADDRESS
+} error_codes_t;
+
 #define ERR_TEMPLATE_FILE_NOT_FOUND "file %s is not found"
 #define ERR_MESSAGE_EMPTY_PATH "empty path"
 #define MESSAGE_BUFFER_LENGTH (512)
 #define GET_FD_OF_PROCESS(process_num, fd_list) fd_list[process_num-1] 
+#define IS_PHYSICAL_ADDRESS_LEGAL(address) ( MEMORY_SIZE <= (address) )
 
 void print_error_and_exit(const char *error_message);
 
@@ -208,6 +215,19 @@ void sim_mem::release_dynamicly_allocated_memory(){
 
 }
 
+int sim_mem::get_physical_address(int logical_address){
+    int page_num = logical_address % this->page_size;
+    int offset = logical_address - (page_num*this->page_size);
+
+    if (page_num < 0 || offset < 0) 
+        return ERR_ILLEGAL_LOGIC_ADDRESS;
+
+    if (this->num_of_pages <= page_num)
+        return ERR_ILLEGAL_LOGIC_ADDRESS;
+
+    
+
+}
 bool is_file_exists(const char file_path[]){
     if (file_path == nullptr)
         return false;
