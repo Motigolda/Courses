@@ -242,7 +242,7 @@ void sim_mem::init_swap_file(const char *swap_file_path, int page_size, int num_
     }
     int i = 0;
     size_t bytes_wrote = 0;
-    for (i = 0; i < page_size * (num_of_pages - text_pages); i++){
+    for (i = 0; i < page_size * (MEMORY_SIZE / page_size); i++){
         bytes_wrote = write(this->swapfile_fd, "0", 1); 
         if(bytes_wrote == 0){
             perror("cant write to swap file");
@@ -301,8 +301,13 @@ int sim_mem::get_page_physical_address(page_descriptor *page, int process_id, in
         return this->bring_page_from_swap(page);
     
     int num_of_pages_before_stack_and_heap = (data_size + text_size) / page_size;
-    if (page_index < num_of_pages_before_stack_and_heap)
-        return this->bring_page_from_file(page, process_id, page_index);
+    if (page_index < num_of_pages_before_stack_and_heap){
+        if (page->D == 0)
+            return this->bring_page_from_file(page, process_id, page_index);
+        else
+            return this->bring_page_from_swap(page);
+    }
+        
 
     int free_frame;
     if (is_memory_full())
@@ -315,6 +320,7 @@ int sim_mem::get_page_physical_address(page_descriptor *page, int process_id, in
     page->V = 1;
     page->P = 1;
     memset(&main_memory[free_frame*page_size], '0', page_size);
+    pages_in_memory.push(free_frame);
     return free_frame*page_size;
 }
 
@@ -465,7 +471,6 @@ int sim_mem::move_page_from_memory(page_descriptor *page, int process_id, int pa
         print_syscall_error_and_exit("cant write to swap file");
     
     this->frame_list[free_frame] = false;
-    page->frame = NOT_IN_MEMORY;
     page->swap_index = free_index_in_swap;
     
     return free_frame;

@@ -4,26 +4,25 @@ using namespace std;
 //char main_memory[MEMORY_SIZE];
 int main()
 {
-    //test 3 - one process. text pages are loaded and are not written to swap
-    cout<<"=================== test 3 - 15 points ==================="<<endl;
-    sim_mem mem_sm3((char*)"test/tester/file1", (char*)"" , (char*)"swap_file" ,20, 10, 5, 5, 8, 5,1);
-	
+   //test 4 - two processes. write to swap -  only dirty pages! 
+    cout<<"=================== test 4 - 15 points ==================="<<endl;
+    sim_mem mem_sm4((char*)"test/tester/file1", (char*)"test/tester/file2" , (char*)"swap_file" ,5, 5, 5, 5, 4, 5,2);
 
-    mem_sm3.load (1, 17);     //bring 'ddddd' to frame 0
-    mem_sm3.load (1, 6);      //bring 'bbbbb' to frame 1
-    mem_sm3.load (1, 2);      //bring 'aaaaa' to frame 2
-    mem_sm3.store(1, 20, 'X');//bring 'Xeeee' to frame 3
-    mem_sm3.store(1, 21, 'Y');//bring 'XYeee' to frame 3
+    mem_sm4.store(2, 7, 'X');  //bring 'BBXBB' to frame 0
+    mem_sm4.load (1, 7);       //bring 'bbbbb' to frame 1
+    mem_sm4.store(1, 15, 'X'); //bring 'X0000' to frame 2
+    mem_sm4.store(2, 15, 'X'); //bring 'X0000' to frame 3
+    mem_sm4.store(2, 6, 'X');  //bring 'BXXBB' to frame 0
 
-    //MEMORY IS FULL
+    //MEMORY IS FULL, frames 0, 2, 3 are dirty
 
-    mem_sm3.store(1, 37, 'Z');//bring '00Z00' to frame 0. no write to swap
-    mem_sm3.load (1, 11);     //bring 'ccccc' to frame 1. no write to swap
+    mem_sm4.load (1, 0);      //bring 'aaaaa' to frame 0. write 'BXXBB' to swap
+    mem_sm4.load (2, 11);     //bring '00000' to frame 1. no write to swap
+    mem_sm4.load (2, 0);      //bring 'AAAAA' to frame 2. write 'X0000' to swap
 
-
-    mem_sm3.print_memory();
-	mem_sm3.print_swap();
-	mem_sm3.print_page_table();
+    mem_sm4.print_memory();
+	mem_sm4.print_swap();
+	mem_sm4.print_page_table();
 
 
     
