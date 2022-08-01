@@ -64,11 +64,12 @@ class sim_mem{
         int get_page_physical_address(page_descriptor *page, int process_id, int page_index);
         int bring_page_from_file(page_descriptor *page, int process_num, int page_index);
         int bring_page_from_swap(page_descriptor *page);
-        int move_oldest_page_to_swap();
+        int move_oldest_page_from_memory();
         int get_free_frame_index();
         int get_offest_in_page(int logical_address);
         bool is_memory_full();
         int get_free_index_in_swap();
+        int move_page_from_memory(page_descriptor *page, int process_id, int page_index);
         // load functions
         
         // store functions

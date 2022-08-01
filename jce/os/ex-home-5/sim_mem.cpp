@@ -25,7 +25,7 @@ typedef enum _error_codes_t{
 #define NOT_IN_MEMORY (-1)
 #define NOT_IN_SWAP (-1)
 #define IS_PAGE_IN_MEMORY(page) ((page)->frame != NOT_IN_MEMORY)
-#define IS_PAGE_IN_SWAP(page) ((page)->D == 1)
+#define IS_PAGE_IN_SWAP(page) ((page)->swap_index == 1)
 #define ERR_CANT_LOAD_PAGE (0)
 
 char main_memory[MEMORY_SIZE];
@@ -195,7 +195,7 @@ void sim_mem::open_executable(const char executable_path[]){
     program_fd[fd_index] = open(executable_path, O_RDONLY);
 
     if (program_fd[fd_index] == -1){
-        perror("cant open swap file");
+        perror("cant open file");
         exit(EXIT_FAILURE);
     }
 }
@@ -296,6 +296,7 @@ int sim_mem::get_page_physical_address(page_descriptor *page, int process_id, in
     if (IS_PAGE_IN_MEMORY(page))
         return page->frame * this->page_size;
     
+
     if (IS_PAGE_IN_SWAP(page))
         return this->bring_page_from_swap(page);
     
@@ -303,11 +304,17 @@ int sim_mem::get_page_physical_address(page_descriptor *page, int process_id, in
     if (page_index < num_of_pages_before_stack_and_heap)
         return this->bring_page_from_file(page, process_id, page_index);
 
-    int free_frame = get_free_frame_index();
+    int free_frame;
+    if (is_memory_full())
+        free_frame = this->move_oldest_page_from_memory();
+    else
+        free_frame = get_free_frame_index();
+
     frame_list[free_frame] = true;
     page->frame = free_frame;
     page->V = 1;
     page->P = 1;
+    memset(&main_memory[free_frame*page_size], '0', page_size);
     return free_frame*page_size;
 }
 
@@ -330,7 +337,11 @@ int sim_mem::get_offest_in_page(int logical_address){
 int sim_mem::bring_page_from_file(page_descriptor *page, int process_num, int page_index){
     if (page_index < 0 || this->num_of_pages <= page_index) 
         return ERR_ILLEGAL_LOGIC_ADDRESS;
-
+    int free_frame;
+    if (is_memory_full())
+        free_frame = this->move_oldest_page_from_memory();
+    else
+        free_frame = get_free_frame_index();
     int page_offset_in_file = page_index * page_size; 
     int fd = GET_FD_OF_PROCESS(process_num, this->program_fd);
     lseek(fd, page_offset_in_file, SEEK_SET);
@@ -338,7 +349,6 @@ int sim_mem::bring_page_from_file(page_descriptor *page, int process_num, int pa
     if(read(fd, buffer, page_size)==0)
         print_syscall_error_and_exit("cant read page from the file");
 
-    int free_frame = this->get_free_frame_index();
     int physical_page_address = free_frame*this->page_size;
 
     memcpy(&main_memory[physical_page_address], buffer, page_size);
@@ -352,6 +362,7 @@ int sim_mem::bring_page_from_file(page_descriptor *page, int process_num, int pa
     else
         page->P = 1;
     page->frame = free_frame;
+    pages_in_memory.push(page->frame);
     return physical_page_address;
 }
 
@@ -362,6 +373,12 @@ int sim_mem::bring_page_from_swap(page_descriptor *page){
     if (!IS_PAGE_IN_SWAP(page))
         return ERR_PAGE_NOT_IN_SWAP;
 
+    int free_frame;
+    if (is_memory_full())
+        free_frame = this->move_oldest_page_from_memory();
+    else
+        free_frame = this->get_free_frame_index();
+
     int offset_in_swap = page->swap_index * this->page_size;
 
     lseek(this->swapfile_fd, offset_in_swap, SEEK_SET);
@@ -370,8 +387,6 @@ int sim_mem::bring_page_from_swap(page_descriptor *page){
 
     if(read(offset_in_swap, buffer, SEEK_SET)==0)
         print_error_and_exit("cant read from swap file");
-
-    int free_frame = this->get_free_frame_index();
     
     int physical_page_address = free_frame*this->page_size;
 
@@ -390,14 +405,13 @@ int sim_mem::bring_page_from_swap(page_descriptor *page){
     this->pages_in_memory.push(free_frame);
     page->V = 1;
     page->frame = free_frame;
+    page->swap_index = NOT_IN_SWAP;
     return physical_page_address;
 }
 
 void sim_mem::init_frame_list(){
     this->frame_list = (bool*)malloc((sizeof(bool)*this->num_of_pages));
-    int i = 0;
-    int d;
-    
+    int i = 0;    
     for (i = 0; i < this->num_of_pages; i++)
         this->frame_list[i] = false;
 }
@@ -405,9 +419,7 @@ void sim_mem::init_frame_list(){
 int sim_mem::get_free_frame_index(){
     int i = 0;
 
-    if (!pages_in_memory.empty() && (int)pages_in_memory.size() == this->num_of_pages)
-        return this->move_oldest_page_to_swap();
-    
+
     for(i = 0; i < this->num_of_pages; i++)
         if (this->frame_list[i] == false)
             return i;
@@ -415,20 +427,49 @@ int sim_mem::get_free_frame_index(){
     return ERR_CANT_FIND_FREE_FRAME;
 }
 
-int sim_mem::move_oldest_page_to_swap(){
+int sim_mem::move_oldest_page_from_memory(){
     frame_index free_frame = this->pages_in_memory.front();
-    int free_index_in_swap = get_free_frame_index();
-    this->frame_list[free_frame] = false;
+    page_descriptor *page = NULL;
+    int process_indexer = 0;
+    int page_indexer = 0;
+    for(process_indexer = 0; process_indexer < this->num_of_proc; process_indexer++){
+        for (page_indexer = 0; page_indexer < this->num_of_pages; page_indexer++){
+            if (page_table[process_indexer][page_indexer].frame == free_frame)
+                page = &page_table[process_indexer][page_indexer];
+        }
+    }
+    if (page->V == 0){
+        pages_in_memory.pop();
+        return move_oldest_page_from_memory();
+    }
+    return move_page_from_memory(page, process_indexer, page_indexer);
+}
+
+int sim_mem::move_page_from_memory(page_descriptor *page, int process_id, int page_index){
+    if (page == NULL)   
+        return 0;
+    
+    page->V = 0;
+    pages_in_memory.pop();
+    if (page->P == 0 || page->D == 0){
+        frame_list[page->frame] = false;
+        return page->frame;
+    }
+    
+    int free_index_in_swap = get_free_index_in_swap();
+    int free_frame = page->frame;
     this->swap_index_list[free_index_in_swap] = true;
     lseek(swapfile_fd, free_index_in_swap*page_size , SEEK_SET);
     
     if(write(swapfile_fd, &main_memory[free_frame*page_size], page_size)==-1)
         print_syscall_error_and_exit("cant write to swap file");
     
-    this->pages_in_memory.pop();
+    this->frame_list[free_frame] = false;
+    page->frame = NOT_IN_MEMORY;
+    page->swap_index = free_index_in_swap;
+    
     return free_frame;
 }
-
 int sim_mem::get_free_index_in_swap(){
     int i = 0;
     for (i = 0; i < num_of_pages*num_of_proc; i++)
@@ -460,4 +501,13 @@ void print_error_and_exit(const char *error_message){
 void print_syscall_error_and_exit(const char *error_message){
     perror(error_message);
     exit(EXIT_FAILURE);
+}
+
+bool sim_mem::is_memory_full(){
+    int i = 0;
+    for (i = 0; i < MEMORY_SIZE / page_size; i++)
+        if(frame_list[i] == false)
+            return false;
+    
+    return true;
 }
