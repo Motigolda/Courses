@@ -115,7 +115,7 @@ void sim_mem::store(int process_id, int address, char value){
     if (page == NULL) 
         return;
     
-    if (page->P == 0){
+    if (page->V == 1 && page->P == 0){
         cout << "Cant store data into text page!" << endl;
         return;
     }
@@ -128,6 +128,7 @@ void sim_mem::store(int process_id, int address, char value){
         physical_address_of_page + this->get_offest_in_page(address);
 
     main_memory[physical_address] = value;
+    page->D = 1;
 }
 /**************************************************************************************/
 void sim_mem::print_memory() {
@@ -154,18 +155,18 @@ free(str);
 /***************************************************************************************/
 void sim_mem::print_page_table() {
 int i;
- for (int j = 0; j < num_of_proc; j++) {
- printf("\n page table of process: %d \n", j);
- printf("Valid\tDirty\tPermission\tFrame\tSwap index\n");
- for(i = 0; i < num_of_pages; i++) {
-printf("[%d]\t\t[%d]\t\t[%d]\t\t\t[%d]\t\t[%d]\n",
- page_table[j][i].V,
- page_table[j][i].D,
+for (int j = 0; j < num_of_proc; j++) {
+printf("\n page table of process: %d \n", j);
+printf("Valid\tDirty\tPermission\tFrame\tSwap index\n");
+for(i = 0; i < num_of_pages; i++) {
+printf("[%d]\t[%d]\t[%d]\t\t[%d]\t[%d]\n",
+page_table[j][i].V,
+page_table[j][i].D,
 page_table[j][i].P,
- page_table[j][i].frame ,
- page_table[j][i].swap_index);
- }
- }
+page_table[j][i].frame ,
+page_table[j][i].swap_index);
+}
+}
 }
 
 void sim_mem::exit_if_executable_not_exists(const char file_path[]){
@@ -191,7 +192,7 @@ void sim_mem::open_executable(const char executable_path[]){
     while(this->program_fd[fd_index] != -1)
         fd_index++;
     
-    program_fd[fd_index] = open(executable_path, O_RDONLY | O_TRUNC);
+    program_fd[fd_index] = open(executable_path, O_RDONLY);
 
     if (program_fd[fd_index] == -1){
         perror("cant open swap file");
@@ -219,7 +220,7 @@ void sim_mem::init_page_table(unsigned int num_of_processes){
         int j = 0;
         for (j = 0; j < this->num_of_pages; j++){
             this->page_table[i][j].D = 0;
-            this->page_table[i][j].P = 0;
+            this->page_table[i][j].P = 1;
             this->page_table[i][j].V = 0;
             this->page_table[i][j].frame = -1;
             this->page_table[i][j].swap_index = -1;
@@ -294,7 +295,16 @@ int sim_mem::get_page_physical_address(page_descriptor *page, int process_id, in
     if (IS_PAGE_IN_SWAP(page))
         return this->bring_page_from_swap(page);
     
-    return this->bring_page_from_file(page, process_id, page_index);
+    int num_of_pages_before_stack_and_heap = (data_size + text_size) / page_size;
+    if (page_index < num_of_pages_before_stack_and_heap)
+        return this->bring_page_from_file(page, process_id, page_index);
+
+    int free_frame = get_free_frame_index();
+    frame_list[free_frame] = true;
+    page->frame = free_frame;
+    page->V = 1;
+    page->P = 1;
+    return free_frame*page_size;
 }
 
 page_descriptor* sim_mem::get_page_by_logical_address(int process_id, int logical_address){
@@ -314,7 +324,7 @@ int sim_mem::get_offest_in_page(int logical_address){
 }
 // return the physical address of the page
 int sim_mem::bring_page_from_file(page_descriptor *page, int process_num, int page_index){
-    if (page_index < 0 || this->num_of_pages) 
+    if (page_index < 0 || this->num_of_pages <= page_index) 
         return ERR_ILLEGAL_LOGIC_ADDRESS;
 
     int page_offset_in_file = page_index * page_size; 
@@ -322,7 +332,8 @@ int sim_mem::bring_page_from_file(page_descriptor *page, int process_num, int pa
     lseek(fd, page_offset_in_file, SEEK_SET);
 
     char *buffer = (char*)malloc(sizeof(char)*page_size);
-    read(fd, buffer, SEEK_SET);
+    if(read(fd, buffer, page_size)==0)
+        print_syscall_error_and_exit("cant read page from the file");
 
     int free_frame = this->get_free_frame_index();
     int physical_page_address = free_frame*this->page_size;
@@ -333,8 +344,11 @@ int sim_mem::bring_page_from_file(page_descriptor *page, int process_num, int pa
     this->frame_list[free_frame] = true;
     page->V = 1;
     page->D = 0;
-    if (page_index <= text_size / page_size)
+    if (page_index < text_size / page_size)
         page->P = 0;
+    else
+        page->P = 1;
+    page->frame = free_frame;
     return physical_page_address;
 }
 
@@ -373,6 +387,7 @@ int sim_mem::bring_page_from_swap(page_descriptor *page){
     this->pages_in_memory.push(free_frame);
     page->D = 0;
     page->V = 1;
+    page->frame = free_frame;
     return physical_page_address;
 }
 
