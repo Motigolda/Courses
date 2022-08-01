@@ -53,8 +53,10 @@ class sim_mem{
         // page functions 
         int get_physical_address(int logical_address);
         int get_page_physical_address(int process_num, int page_num);
-        int move_page_in_swap(int frame);
         int bring_page_to_memory(int process, int page_num);
+        int move_page_to_swap(int frame);
+        int get_free_frame_index();
+        
         // load functions
         
         // store functions
