@@ -1,0 +1,7 @@
+ls -l
+ls
+ls |
+rm ex2_moti.zip
+ls
+rm poc
+ls

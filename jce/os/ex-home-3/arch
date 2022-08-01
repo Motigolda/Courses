@@ -1,0 +1,24 @@
+String Analysis
+	- one function: int AnalyizeString(char *str, statistics_t stats);
+
+Prints:
+	- PrintWaitingForInput();
+	- PrintHistroy(char **history)
+
+Command detection
+	- IsExitCommand()
+	- IsHistoryCommand()
+	- these functions need to be used in string analysis
+History
+	- ReadHistoryFromFile
+	- AppendStringToHistory
+	- SaveHistoryToFile
+	- GetHistory()
+
+Commands
+	- UserCommandExit()
+	- UserCommandPrintHistory()
+
+Input collector
+	- GetInputLineFromUser();
+

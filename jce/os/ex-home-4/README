@@ -1,0 +1,32 @@
+
+Ex4 - Polynomial Calculator
+Authored by Mordechai Goldstein
+318530136
+
+==Description==
+This program is a calculator focused on polynomial calculating.
+Enter your polynomial in this format: POLYNOMIAL, X0
+Where POLYNOMIAL is your polynomial without spaces and X0 is the x you want to solve the polynomial for.
+Example: 2x^2+3x^3, 6
+All the of the numbers must be positive!
+For exit, type "done".
+
+The calculation itself implemented twice:
+1) Using threads
+2) Using processes and shared memory
+
+The threads implementation can be found in the file ex4a.c.
+The processes one can be found in the file ex4b.c
+
+Note that compilation with -Wall flag will warn about pragmas. 
+Pragma directives are used to make an order in the file and should be ignored by the compiler. 
+==Program Files==
+ex4a.c - Threads implementation
+ex4b.c - Processes implemenetation
+README - this explanation file :) 
+
+==How to compile?==
+ex3a.c:
+    gcc ex4a.c -o ex4a -lm -lpthread  
+ex3b.c:
+    gcc ex4b.c -o ex4b -lm -lpthread  
