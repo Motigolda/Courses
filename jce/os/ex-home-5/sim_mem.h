@@ -50,9 +50,10 @@ class sim_mem{
         // destruct functions
         void close_open_executables();
         void release_dynamicly_allocated_memory();
-        void clean_swap_file();
         // page functions 
         int get_physical_address(int logical_address);
+        int bring_page_to_memory(int process, int logical_address);
+        int put_page_in_swap(int process, int logical_address);
         // load functions
         
         // store functions

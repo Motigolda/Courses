@@ -58,12 +58,11 @@ sim_mem::sim_mem(const char exe_file_name1[],
 }
     
 sim_mem::~sim_mem(){
-    int i = 0;
-    for (i = 0; i < this->num_of_proc; i++)
-        close(this->program_fd[i]);
+    this->close_open_executables();
 
-    this->clean_swap_file();
     close(this->swapfile_fd);
+    
+    this->release_dynamicly_allocated_memory();
 
 }
 
@@ -154,10 +153,21 @@ void sim_mem::init_page_table(unsigned int num_of_processes){
         exit(EXIT_FAILURE);
 
     this->page_table = (page_descriptor**)malloc(sizeof(page_descriptor*) * this->num_of_proc);
+
     int i = 0;
     for(i = 0; i < this->num_of_proc; i++)
-        this->page_table = malloc(sizeof(page_descriptor)*this->num_of_pages);
+        this->page_table[i] = (page_descriptor*)malloc(sizeof(page_descriptor)*this->num_of_pages);
     
+    for(i = 0; i < this->num_of_proc; i++){
+        int j = 0;
+        for (j = 0; j < this->num_of_pages; j++){
+            this->page_table[i][j].D = 0;
+            this->page_table[i][j].P = 0;
+            this->page_table[i][j].V = 0;
+            this->page_table[i][j].frame = -1;
+            this->page_table[i][j].swap_index = -1;
+        }
+    }
 }
 
 void sim_mem::init_swap_file(const char *swap_file_path, int page_size, int num_of_pages, int text_pages){
@@ -166,6 +176,22 @@ void sim_mem::init_swap_file(const char *swap_file_path, int page_size, int num_
     int i = 0;
     for (i = 0; i < page_size * (num_of_pages - text_pages); i++)
         write(this->swapfile_fd, "0", 1); 
+}
+
+void sim_mem::close_open_executables(){
+    int i = 0;
+    for (i = 0; i < this->num_of_proc; i++)
+        close(this->program_fd[i]);
+}
+void sim_mem::release_dynamicly_allocated_memory(){
+    int i = 0;
+    for(i = 0; i < this->num_of_proc; i++){
+        free(this->page_table[i]);
+        this->page_table[i] = NULL;
+    }
+    free(this->page_table);
+    this->page_table = NULL;
+
 }
 
 bool is_file_exists(const char file_path[]){
