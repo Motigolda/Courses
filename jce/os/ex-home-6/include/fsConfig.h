@@ -2,7 +2,7 @@
 #define FS_CONFIG_H
 
 #ifndef DISK_SIZE
-#define DISK_SIZE 256
+#define DISK_SIZE (256)
 #endif
 
 #ifndef DISK_PATH
@@ -12,5 +12,11 @@
 #ifndef DISK_SIM_FILE
 #define DISK_SIM_FILE DISK_PATH
 #endif
+
+#define ERROR_OPERATION_FAILED (-1)
+
+#define SUCCESS (1)
+
+#define BLOCK_SIZE_UNDEFINED (-1)
 
 #endif

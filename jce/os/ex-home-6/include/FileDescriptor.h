@@ -29,6 +29,9 @@ class FileDescriptor {
         fs_file = fsi;
         inUse = true;
     }
+    ~FileDescriptor(){
+        
+    }
 
     string getFileName() {
         return file_name;
@@ -38,6 +41,9 @@ class FileDescriptor {
     }
     void setInUse(bool value){
         inUse = value;
+    }
+    FsFile* getFsFile(){
+        return fs_file;
     }
 };
 
