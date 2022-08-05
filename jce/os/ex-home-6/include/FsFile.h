@@ -11,7 +11,9 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
 #include "FsFile.h"
+#include "fsConfig.h"
 
 class FsFile {
     int file_size;
@@ -24,10 +26,41 @@ class FsFile {
         file_size = 0;
         block_in_use = 0;
         block_size = _block_size;
-        index_block = -1;
+        index_block = NOT_INITIALIZED;
     }
 
     int getfile_size(){
+        return file_size;
+    }
+
+    int getFreeSpaceInFileInBytes(){
+        return block_size*block_size - file_size;
+    }
+
+    int getIndexBlock(){
+        return index_block;
+    }
+    void setIndexBlock(int indexBlock){
+        index_block = indexBlock;
+    }
+    void setBlockSize(int blockSize){
+        block_size = blockSize;
+    }
+    void resetData(){
+        file_size = 0;
+        block_in_use = 0;
+        index_block = NOT_DEFINED;
+    }
+    void setBlocksInUse(int value){
+        block_in_use = value;
+    }
+    int getBlocksInUse(){
+        return block_in_use;
+    }
+    void setFileSize(int size){
+        file_size = size;
+    }
+    int getFileSize(){
         return file_size;
     }
 

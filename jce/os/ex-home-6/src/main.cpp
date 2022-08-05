@@ -17,7 +17,6 @@ using namespace std;
 
 int main() {
     int blockSize; 
-	int direct_entries;
     string fileName;
     char str_to_write[DISK_SIZE];
     char str_to_read[DISK_SIZE];
@@ -29,7 +28,7 @@ int main() {
     cout << "Welcome to file system simulator!" << endl;
     cout << "0 - exit" << endl;
     cout << "1 - list files and show disk content" << endl;
-    cout << "2 - format (must be done before any operation" << endl;
+    cout << "2 - format (must be done before any operation)" << endl;
     cout << "3 - create a new file" << endl;
     cout << "4 - open an existing file" << endl;
     cout << "5 - close an opened file" << endl;
@@ -75,14 +74,14 @@ int main() {
                 break;
              
             case 5:  // close-file
-                cout << "-- File Closing--\nEnter FD:";
+                cout << "-- File Closing--\nEnter FD: ";
                 cin >> _fd;
                 fileName = fs->CloseFile(_fd); 
                 cout << "CloseFile: " << fileName << " with File Descriptor #: " << _fd << endl;
                 break;
            
             case 6:   // write-file
-                cout << "-- Writing To File --\nEnter FD:";
+                cout << "-- Writing To File --\nEnter FD: ";
                 cin >> _fd;
                 cout << "Enter Data: ";
                 cin >> str_to_write;
@@ -90,7 +89,7 @@ int main() {
                 break;
           
             case 7:    // read-file
-                cout << "-- Reading From File --\nEnter FD:";
+                cout << "-- Reading From File --\nEnter FD: ";
                 cin >> _fd;
                 cout << "Enter Size To Read: ";
                 cin >> size_to_read ;
@@ -108,6 +107,8 @@ int main() {
                 cout << "Unknown Command" << endl;
                 break;
         }
+        cin.clear();
+        fflush(stdin);
     }
 
 } 

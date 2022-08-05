@@ -27,7 +27,7 @@ class FileDescriptor {
     FileDescriptor(string FileName, FsFile* fsi) {
         file_name = FileName;
         fs_file = fsi;
-        inUse = true;
+        inUse = false;
     }
     ~FileDescriptor(){
         
